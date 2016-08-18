@@ -113,7 +113,7 @@ void emptyUse()
 }
 void solve()
 {
-
+	for (int i=0;i<81;++i)
         for (int j=0; j<9; ++j)
             for (int k=0; k<9; ++k)
                 if (Map[j][k]==0)
