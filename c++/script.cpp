@@ -49,6 +49,7 @@ private:
     string getStr(iter); //获取字符串
     void getKey(iter);
     void vbAssign(iter);
+    void selfOper(iter);
     int getNum(iter); //获取数值
     int scrLine;
     int currentLine;
@@ -185,6 +186,10 @@ void script::runOneLineScript(vector<string>::iterator &i)
     {
         vbAssign(i);
     }
+    else if ((*i).find("+=")!=string::npos||(*i).find("-=")!=string::npos||(*i).find("*=")!=string::npos||(*i).find("/=")!=string::npos)
+    {
+        selfOper(i);
+    }
     else if (command=="GetKey")
     {
         getKey(i);
@@ -278,6 +283,7 @@ void script::runOneLineScript(vector<string>::iterator &i)
     }
     else if (command=="Else")
     {
+
         i+=2;
         ++n_kh;
         int j=0;
@@ -302,6 +308,46 @@ void script::runOneLineScript(vector<string>::iterator &i)
             for (; i!=(_i+j); ++i)
             {
                 runOneLineScript(i);  //递归执行块内代码
+            }
+        }
+    }
+    else if (command=="While")
+    {
+        int Bool=getNum(i);
+        i+=2;
+        auto i_=i;
+        int j=0;
+        n_kh++;
+        while(n_kh!=0) //搜索右大括号,取之间代码块
+        {
+            if ((*(i+j)).substr(0,1)=="{")
+                n_kh++;
+            if ((*(i+j)).substr(0,1)=="}")
+                n_kh--;
+            ++j;
+            if ((i+j)==scrCode.end())
+            {
+                break;
+            }
+        }
+        --j;
+        if (j==0)
+            return;
+        while(1)
+        {
+            if (Bool!=0)
+            {
+                for (; i!=(i_+j); ++i)
+                {
+                    runOneLineScript(i);  //递归执行块内代码
+                }
+                i=i_;
+                Bool=getNum(i-2);
+            }
+            else
+            {
+                i+=j;
+                break;
             }
         }
     }
@@ -431,6 +477,79 @@ void script::getKey(iter i)
             error("Undefined varriable",currentLine);
 
     }
+}
+void script::selfOper(iter i)
+{
+    string code=*i;
+    int m=code.find_first_of('=');
+    char c=code[m-1];
+    int e=code.size()-1;
+    string l=code.substr(0,m-1);
+    string r=code.substr(m+1,e-m-2);
+    int n_r;
+    for (auto _i=vb.begin(); _i!=vb.end(); ++_i)
+    {
+        if ((*_i).first==l)
+        {
+                if (isAlp(r[0]))
+                {
+            for (auto j=vb.begin(); j!=vb.end(); ++j)
+            {
+                if ((*j).first==r)
+                {
+                    switch(c)
+                    {
+                    case '+':
+                        (*_i).second+=(*j).second;
+                        break;
+                    case '-':
+                        (*_i).second-=(*j).second;
+                        break;
+                    case '*':
+                        (*_i).second*=(*j).second;
+                        break;
+                    case '/':
+                        (*_i).second/=(*j).second;
+                        break;
+                    }
+
+                }
+                else if (j+1==vb.end())
+                    {
+                            error("Undefined varriable",currentLine);
+                    }
+
+            }
+            }
+            else
+            {
+
+                    stringstream tmp;
+                    tmp<<r;
+                    tmp>>n_r;
+                    switch(c)
+                    {
+                    case '+':
+                        (*_i).second+=n_r;
+                        break;
+                    case '-':
+                        (*_i).second-=n_r;
+                        break;
+                    case '*':
+                        (*_i).second*=n_r;
+                        break;
+                    case '/':
+                        (*_i).second/=n_r;
+                        break;
+                    }
+
+            }
+            break;
+        }
+        else if (_i+1==vb.end())
+            error("Undefined varriable",currentLine);
+    }
+
 }
 
 
