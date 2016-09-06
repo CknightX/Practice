@@ -62,8 +62,9 @@ private:
 int main(int argc,char **argv)
 {
     script scr;
-    scr.loadScript(PATH);
+    scr.loadScript(argv[1]);
     scr.runScript();
+    cin.get();
     return 0;
 }
 void script::loadScript(string strFileName)
@@ -512,6 +513,7 @@ void script::selfOper(iter i)
                         (*_i).second/=(*j).second;
                         break;
                     }
+                    break;
 
                 }
                 else if (j+1==vb.end())
@@ -547,7 +549,9 @@ void script::selfOper(iter i)
             break;
         }
         else if (_i+1==vb.end())
+        {
             error("Undefined varriable",currentLine);
+        }
     }
 
 }
