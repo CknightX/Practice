@@ -2,7 +2,15 @@
 #include<stdlib.h>
 void Scanner::_TestPrint()
 {
-    for_each(Source.begin(),Source.end(),[](const string&b){cout<<b<<endl;});
+    for_each(Source.begin(),Source.end(),[](const string&b)
+    {
+        cout<<b<<"\tsize:"<<b.size()<<endl;
+    });
+}
+Scanner::Scanner()
+    :Line(0),Index(0)
+{
+
 }
 Scanner::Scanner(string path)
     :Line(0),Index(0)
@@ -12,20 +20,32 @@ Scanner::Scanner(string path)
         cerr<<"Can't Open the file";
         exit(0);
     }
-    RemoveBlank();
-    RemoveNote();
+
 }
 bool Scanner::OpenSourceFile(string path)
 {
+    InitAllVec();
     ifstream file(path);
     if (!file.is_open())
         return false;
     string tmp;
     while(getline(file,tmp))
     {
-        if (tmp=="")
+        RemoveNote(tmp);
+        RemoveBlank(tmp);
+
+        if (IsLineEmpty(tmp))
             continue;
         Source.push_back(tmp);
+    }
+    return true;
+}
+bool Scanner::IsLineEmpty(string s)
+{
+    for (auto c:s)
+    {
+        if (c!='\n'&&c!=' '&&c!='\t')
+            return false;
     }
     return true;
 }
@@ -44,29 +64,26 @@ char Scanner::EatChar()
 {
     return Source[Line][Index++];
 }
-void Scanner::RemoveBlank()
+void Scanner::RemoveBlank(string &s)
 {
-    for (auto &code:Source)
-    {
-        const char *ptr=code.c_str();
-        while(*ptr==' '||*ptr=='\t')
-            ++ptr;
-        code=string(ptr);
-    }
+    const char *ptr=s.c_str();
+    while(*ptr==' '||*ptr=='\t')
+        ++ptr;
+    s=string(ptr); //¿ªÍ·¿Õ¸ñÒÆ³ý
+    ptr=s.c_str()+s.size()-1;
+
+    while(*ptr==' '||*ptr=='\t')
+        --ptr;
+    s=s.substr(0,ptr-s.c_str()+1);
 }
-void Scanner::RemoveNote()
+void Scanner::RemoveNote(string &s)
 {
-    for (auto &code : Source)
-    {
-        int index=code.find_first_of(';');
-        code=code.substr(0,index);
-    }
+    int index=s.find_first_of(';');
+    s=s.substr(0,index);
 }
 
 void Scanner::MoveNextLine()
 {
-    if (Line>=Source.size())
-        return;
     Line++;
     Index=0;
 }
@@ -80,10 +97,13 @@ bool Scanner::IsNum(char c)
 }
 Token Scanner::GetNextToken()
 {
-    if (Index==Source[Line].size())
-        MoveNextLine();
+    ICurrToken=_GetNextToken();
+    return ICurrToken;
+}
+Token Scanner::_GetNextToken()
+{
     if (Line>=Source.size())
-        return TOKEN_END;
+            return TOKEN_END;
     CurrToken="";
     bool is_add=true;
     bool is_end=false;
@@ -91,10 +111,7 @@ Token Scanner::GetNextToken()
     while(1)
     {
         is_add=true;
-        if (Index==Source[Line].size())
-        {
-            break;
-        }
+
         char c=EatChar();
         switch(curr_status)
         {
@@ -112,10 +129,18 @@ Token Scanner::GetNextToken()
                 is_add=false;
                 curr_status=STATUS_STRING;
             }
-            else if (c==' '||c=='\n')
+            else if (c==' '||c=='\t')
             {
+
                 is_add=false;
                 curr_status=STATUS_START;
+                //if (Index==Source[Line].size())
+                  //  MoveNextLine();
+            }
+            else if (IsInDelimVec(c))
+            {
+                is_end=true;
+                curr_status=STATUS_DELIM;
             }
             else
             {
@@ -124,7 +149,7 @@ Token Scanner::GetNextToken()
             }
             break;
         case STATUS_IDENT:
-            if (!IsAlp(c))
+            if (!IsAlp(c)&&!(IsNum(c)))
             {
                 is_end=true;
                 is_add=false;
@@ -159,28 +184,57 @@ Token Scanner::GetNextToken()
                 ThrowChar();
             }
             break;
-        default:
-            break;
+
+
         }
         if (is_add==true)
         {
             CurrToken+=c;
         }
+        if (Index==Source[Line].size())
+        {
+            MoveNextLine();
+            break;
+        }
         if (is_end==true)
         {
             break;
         }
+
     }
     switch(curr_status)
     {
     case STATUS_IDENT:
         return TOKEN_IDENT;
+        break;
     case STATUS_INT:
         return TOKEN_INT;
+        break;
     case STATUS_FLOAT:
         return TOKEN_FLOAT;
-    default:
-        return TOKEN_END;
+        break;
+    case STATUS_DELIM:
+        switch(CurrToken[0])
+        {
+        case ',':
+            return TOKEN_COMMA;
+            break;
+        case '[':
+            return TOKEN_OPEN_BRACKET;
+            break;
+        case ']':
+            return TOKEN_CLOSE_BRACKET;
+            break;
+        case '{':
+            return TOKEN_OPEN_BRACE;
+            break;
+        case '}':
+            return TOKEN_CLOSE_BRACE;
+            break;
+        case ':':
+            return TOKEN_COLON;
+        }
+
     }
 
 }
@@ -190,17 +244,27 @@ bool Scanner::IsInIndentVec(string indent)
         return true;
     return false;
 }
-void Scanner::InitIndentList()
+void Scanner::InitAllVec()
 {
-    IndentVec.push_back("mov");
-    IndentVec.push_back("add");
-    IndentVec.push_back("func");
-    IndentVec.push_back("mul");
-    IndentVec.push_back("");
+    DelimVec.push_back(',');
+    DelimVec.push_back(':');
+    DelimVec.push_back(';');
+    DelimVec.push_back('(');
+    DelimVec.push_back(')');
+    DelimVec.push_back('[');
+    DelimVec.push_back(']');
+    DelimVec.push_back('{');
+    DelimVec.push_back('}');
 }
 char Scanner::LookAheadOneChar()
 {
     char c=EatChar();
     ThrowChar();
     return c;
+}
+bool Scanner::IsInDelimVec(char c)
+{
+    if (find(DelimVec.begin(),DelimVec.end(),c)!=DelimVec.end())
+        return true;
+    return false;
 }
