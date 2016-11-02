@@ -177,8 +177,7 @@ Token Scanner::_GetNextToken()
 			}
             else
             {
-                is_add=false;
-                ErrorExit("error");
+				throw except_scanner(EXCEPT_UNDEFINE, c,"undefine char",Line,Index);
             }
             break;
         case STATUS_IDENT:
@@ -198,9 +197,13 @@ Token Scanner::_GetNextToken()
 			{
 				curr_status = STATUS_FLOAT;
 			}
+			else if (IsAlp(c))
+			{
+				curr_status = STATUS_INT;
+			}
 			else
 			{
-				throw invalid_argument("error");
+				throw except_scanner(EXCEPT_ILLEGAL, c, "illegal char", Line, Index);
 			}
 			break;
         case STATUS_INT:
@@ -410,4 +413,9 @@ bool Scanner::IsInOpVec(char c)
 	if (find(OpVec.begin(), OpVec.end(), c) != OpVec.end())
 		return true;
 	return false;
+}
+except_scanner::except_scanner(except_type _type,char _c,string str,int _l,int _i)
+	:type(_type), i(_i), l(_l), c(_c)
+{
+	cerr <<'['<<l+1<<']'<< "scanner error:  "<<str<<' '<<'\''<<c<<'\'';
 }

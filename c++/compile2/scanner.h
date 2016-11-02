@@ -14,6 +14,20 @@ enum Token {
             TOKEN_PARAM,TOKEN_REG,TOKEN_INVALID,TOKEN_END,TOKEN_ADD,TOKEN_MOV,TOKEN_IF,TOKEN_WHILE,TOKEN_FOR,TOKEN_MOD};
 enum Status {STATUS_IS_OPPO_NUM,STATUS_STRING,STATUS_INT,STATUS_FLOAT,STATUS_IDENT,STATUS_SIGN,STATUS_START,STATUS_DELIM,STATUS_OP,STATUS_END,STATUS_OPPO_NUM};
 
+
+enum except_type{EXCEPT_UNDEFINE,EXCEPT_ILLEGAL};
+
+class except_scanner
+{
+public:
+	int l, i; // line,index
+	char c; //error char
+	except_scanner(except_type _type,char _c,string str,int _l,int _i);
+	except_type type;
+	
+private:
+};
+
 class Scanner
 {
 public:

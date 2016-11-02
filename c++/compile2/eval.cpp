@@ -11,7 +11,7 @@ using namespace std;
 
 const int num_op = 14; //运算符个数
 //运算符顺序： + - * / % ( == != > < >= <= && ||
-int op_pri_map[num_op][num_op]=  //运算符运算优先数组,为1则行上的符号大于列上的符号,0则小于，若相同优先级则规定行优先级大于列
+int op_pri_map[num_op][num_op]=  //运算符运算优先矩阵,为1则行上的符号大于列上的符号,0则小于，若相同优先级则规定行优先级大于列
 {
 	//  +  -  *  /  %  (  a  b  c  d  e  f  g  h
 
@@ -128,8 +128,7 @@ double count_num(double num1, char op, double num2)
 	case 'a':
 		num=(num1==num2); break;
 	case 'b':
-		num = (num1 
-			!= num2); break;
+		num = (num1 != num2); break;
 	case 'c':
 		num = (num1 > num2); break;
 	case 'd':

@@ -60,11 +60,11 @@ private:
 
 
 	//statement_deal
-	string deal_expression();
+	string deal_expression(int mode=0);
 
 	shared_ptr<Statement> deal_if();
 	shared_ptr<Statement> deal_while();
-	shared_ptr<Statement> deal_var_extern();
+	shared_ptr<Statement> deal_var_extern(vector<shared_ptr<VariableNode>> &variable_list);
 	shared_ptr<Statement> deal_statement(Token begin_state);
 	shared_ptr<Statement> deal_func_extern();
 	shared_ptr<Statement> deal_for();

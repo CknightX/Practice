@@ -39,7 +39,7 @@ struct VariableNode
 struct FunctionNode
 {
 	string name;
-	shared_ptr<vector<VariableNode>> v_list; //局部变量表，参数同样添加进来
+	shared_ptr<vector<shared_ptr<VariableNode>>> v_list; //局部变量表，参数同样添加进来
 	shared_ptr<StatementList> s_list; //函数体语句
 
 };
@@ -234,7 +234,7 @@ struct FunctionNode
 		while_statement->para.push_back(expression);
 		return while_statement;
 	}
-	shared_ptr<Statement> Parser::deal_var_extern()
+	shared_ptr<Statement> Parser::deal_var_extern(vector<shared_ptr<VariableNode>> &variable_list) //添加进哪一个变量表
 	{
 		string expression;
 		auto var_node = make_shared<VariableNode>();
@@ -285,7 +285,7 @@ struct FunctionNode
 			}
 			break;
 		case TOKEN_VAR:
-			statement_node = deal_var_extern();
+			statement_node = deal_var_extern(variable_list);
 			break;
 		case TOKEN_FUNC:
 			statement_node = deal_func_extern();
@@ -296,6 +296,18 @@ struct FunctionNode
 	shared_ptr<Statement> Parser::deal_func_extern()
 	{
 		auto func_statement = make_shared<FunctionNode>();
+		scanner.GetNextToken(); //func name
+		string name = scanner.CurrToken;
+		scanner.GetNextToken(); //(
+		while (scanner.GetNextToken() != TOKEN_OPEN_BRACE) //对于
+		{
+			scanner.PutToken();
+			deal_var_extern(*(func_statement->v_list));
+		}
+		auto statement_list = make_shared<StatementList>();
+		statement_list = deal_block();
+		func_statement->name = name;
+		func_statement->s_list = statement_list;
 
 		return nullptr;
 
@@ -353,29 +365,32 @@ struct FunctionNode
 		}
 		return block_node;
 	}
-	string Parser::deal_expression() // i为默认左括号数，用于适应左侧无括号而右部
+	string Parser::deal_expression(int mode) // mode 为模式
 	{
 		string expression = "";
 		Token tmp;
 		int num = 0;
 		bool flag = false;
+		if (mode==0) //默认模式 
 		while ((tmp = scanner.GetNextToken()) != TOKEN_SEMI&&tmp!=TOKEN_COMMA)
 		{
+			if (scanner.ICurrToken == TOKEN_OPEN_BRACE)
+			{
+				scanner.PutToken();
+				break;
+			}
 			if (scanner.ICurrToken == TOKEN_OPEN_BRACKET)
 			{
-				flag = true;
 				++num;
 			}
 			else if (scanner.ICurrToken == TOKEN_CLOSE_BRACKET)
 			{
-				if (num == 0)
-					break;
-				else
 				--num;
 			}
-			expression += scanner.CurrToken;
-			if (num == 0 && flag ==true)
+			if (num == -1)
 				break;
+			expression += scanner.CurrToken;
+		
 
 		}
 		return expression;
@@ -397,11 +412,17 @@ struct FunctionNode
 
 	int main()
 	{
-	//	cout << "--------------------" << endl;
+		cout << "--------------------" << endl;
 		cout << "script is running..."<<endl;
 		cout << "--------------------"<<endl;
 		Parser a("D:\\1.txt");
-		a.Assembly();
+		try
+		{
+			a.Assembly();
+		}
+		catch (except_scanner& a)
+		{
+		}
 		a.run();
 		cin.get();
 	}
