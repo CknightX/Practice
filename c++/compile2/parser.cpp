@@ -6,6 +6,9 @@ vector<shared_ptr<Statement>> statement_list;
 vector<shared_ptr<FunctionNode>> func_list;
 vector<shared_ptr<VariableNode>> variable_list;
 vector<string> native_func = { "print", "newline" };
+
+
+
 class StatementList;
 struct Statement
 {
@@ -21,7 +24,7 @@ public:
 	vector<shared_ptr<Statement>> statement_list;
 };
 
-
+shared_ptr<FunctionNode> tmp_func; //保存当前所调用的函数
 
 struct VariableNode
 {
@@ -39,7 +42,7 @@ struct VariableNode
 struct FunctionNode
 {
 	string name;
-	shared_ptr<vector<shared_ptr<VariableNode>>> v_list; //局部变量表，参数同样添加进来
+	vector<shared_ptr<VariableNode>> v_list; //局部变量表，参数同样添加进来
 	shared_ptr<StatementList> s_list; //函数体语句
 
 };
@@ -94,7 +97,9 @@ struct FunctionNode
 			executive_if(s);
 			break;
 		case STATEMENT_FUNC_CALL:
+			is_in_func = true;
 			executive_func_call(s);
+			is_in_func = false;
 			break;
 		case STATEMENT_NATIVE_FUNC_CALL:
 			executive_native_func_call(s);
@@ -112,11 +117,16 @@ struct FunctionNode
 	}
 	void Parser:: executive_variable_assign(shared_ptr<Statement> s)
 	{
+		vector<shared_ptr<VariableNode>> _variable_list;
+		if (is_in_func)
+			_variable_list = tmp_func->v_list;
+		else
+			_variable_list = variable_list;
 		for (auto i = variable_list.begin(); i != variable_list.end(); ++i)
 		{
 			if ((*i)->name == s->para[0])
 			{
-				(*i)->u.double_type = eval(s->para[1],variable_list);
+				(*i)->u.double_type = eval(s->para[1],_variable_list);
 				break;
 			}
 			else if (i + 1 == variable_list.end())
@@ -127,10 +137,15 @@ struct FunctionNode
 	}
 	void Parser:: executive_native_func_call(shared_ptr<Statement> s)
 	{
+		vector<shared_ptr<VariableNode>> _variable_list;
+		if (is_in_func)
+			_variable_list = tmp_func->v_list;
+		else
+			_variable_list = variable_list;
 		string name = s->para[0];
 		if (name == "print")
 		{
-			cout << eval(s->para[1], variable_list);
+			cout << eval(s->para[1], _variable_list);
 		}
 		else if (name == "newline")
 		{
@@ -139,23 +154,46 @@ struct FunctionNode
 	}
 	void Parser:: executive_func_call(shared_ptr<Statement> s)
 	{
+		is_in_func = true; //在函数体内
+		for (auto i : func_list)
+		{
+			if (i->name == s->para[0])
+			{
+				for (auto j : i->s_list->statement_list)
+				{
+					executive_statement(j);
+				}
+				return;
+			}
+		}
+		throw;
 	}
 	void Parser:: executive_while(shared_ptr<Statement> s)
 	{
-		double value = eval(s->para[0], variable_list);
+		vector<shared_ptr<VariableNode>> _variable_list;
+		if (is_in_func)
+			_variable_list = tmp_func->v_list;
+		else
+			_variable_list = variable_list;
+		double value = eval(s->para[0], _variable_list);
 		while (value != 0)
 		{
 			for (auto i : s->block->statement_list)
 			{
 				executive_statement(i);
 			}
-		 value = eval(s->para[0], variable_list);
+		 value = eval(s->para[0], _variable_list);
 		}
 	}
 	void Parser:: executive_for(shared_ptr<Statement> s)
 	{
+		vector<shared_ptr<VariableNode>> _variable_list;
+		if (is_in_func)
+			_variable_list = tmp_func->v_list;
+		else
+			_variable_list = variable_list;
 		executive_statement(s->else_block->statement_list[0]);
-		while (eval(s->para[0],variable_list))
+		while (eval(s->para[0],_variable_list))
 		{
 			for (auto i : s->block->statement_list)
 			{
@@ -166,7 +204,12 @@ struct FunctionNode
 	}
 	void Parser:: executive_if(shared_ptr<Statement> s)
 	{
-		double value = eval(s->para[0], variable_list);
+		vector<shared_ptr<VariableNode>> _variable_list;
+		if (is_in_func)
+			_variable_list = tmp_func->v_list;
+		else
+			_variable_list = variable_list;
+		double value = eval(s->para[0], _variable_list);
 		if (value == 0) //false
 		{
 			if (s->else_block)
@@ -236,12 +279,17 @@ struct FunctionNode
 	}
 	shared_ptr<Statement> Parser::deal_var_extern(vector<shared_ptr<VariableNode>> &variable_list) //添加进哪一个变量表
 	{
+		vector<shared_ptr<VariableNode>> _variable_list;
+		if (is_in_func)
+			_variable_list = tmp_func->v_list;
+		else
+			_variable_list = variable_list;
 		string expression;
 		auto var_node = make_shared<VariableNode>();
 		scanner.GetNextToken();
 		string name = scanner.CurrToken;
 		scanner.GetNextToken(); //  =/;
-		if (scanner.ICurrToken == TOKEN_SEMI) //无初始值
+		if (scanner.ICurrToken == TOKEN_SEMI || scanner.ICurrToken == TOKEN_CLOSE_BRACKET || scanner.ICurrToken == TOKEN_COLON) //无初始值
 		{
 			expression = "0";
 		}
@@ -250,9 +298,9 @@ struct FunctionNode
 			expression = deal_expression();
 		}
 		var_node->name = name;
-		var_node->u.double_type = eval(expression, variable_list);
-
 		variable_list.push_back(var_node);
+		var_node->u.double_type = eval(expression, _variable_list);
+
 		return nullptr;
 
 	}
@@ -295,20 +343,23 @@ struct FunctionNode
 	}
 	shared_ptr<Statement> Parser::deal_func_extern()
 	{
-		auto func_statement = make_shared<FunctionNode>();
+		auto func_node = make_shared<FunctionNode>();
 		scanner.GetNextToken(); //func name
 		string name = scanner.CurrToken;
 		scanner.GetNextToken(); //(
-		while (scanner.GetNextToken() != TOKEN_OPEN_BRACE) //对于
+		while (1)
 		{
-			scanner.PutToken();
-			deal_var_extern(*(func_statement->v_list));
+			auto i = scanner.GetNextToken();
+			if (i == TOKEN_OPEN_BRACE || i == TOKEN_CLOSE_BRACKET)
+				break;
+			deal_var_extern((func_node->v_list)); //将函数参数放入临时变量表
 		}
-		auto statement_list = make_shared<StatementList>();
-		statement_list = deal_block();
-		func_statement->name = name;
-		func_statement->s_list = statement_list;
-
+		scanner.PutToken();
+		auto _statement_list = make_shared<StatementList>();
+		_statement_list = deal_block();
+		func_node->name = name;
+		func_node->s_list = _statement_list;
+		func_list.push_back(func_node);
 		return nullptr;
 
 	}
@@ -337,20 +388,40 @@ struct FunctionNode
 	shared_ptr<Statement> Parser::deal_func_call(string _name)
 	{
 		auto func_statement = make_shared<Statement>();
+		scanner.GetNextToken(); // (
+		auto i = find_func_by_name(_name);
+		if (i == func_list.end())
+			throw;
+		int j = 0;
+		while (scanner.GetNextToken() != TOKEN_SEMI)
+		{
+			string p = deal_expression();
+			((*i)->v_list[j])->u.double_type = eval(p, variable_list);
+			((*i)->v_list[j++])->type = TYPE_DOUBLE;
+		}
 		func_statement->para.push_back(_name);
 		if (find(native_func.begin(), native_func.end(), _name) != native_func.end()) //native func
 		{
 			func_statement->type = STATEMENT_NATIVE_FUNC_CALL;
-			func_statement->para.push_back(deal_expression());
 		}
 		else
 		{
 			func_statement->type = STATEMENT_FUNC_CALL;
-			func_statement->para.push_back(deal_expression());
 		}
 		return func_statement;
 	}
 
+	vector<shared_ptr<FunctionNode>>::iterator find_func_by_name(string _name)
+	{
+		for (auto i = func_list.begin(); i != func_list.end(); ++i)
+		{
+			if ((*i)->name == _name) //找到
+			{
+				return i;
+			}
+		}
+		return func_list.end();
+	}
 	shared_ptr<StatementList> Parser::deal_block()  //语句块
 	{
 		scanner.GetNextToken(); // {

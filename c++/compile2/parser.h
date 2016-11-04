@@ -32,6 +32,7 @@ extern vector<string> native_func;  //原生函数表
 
 
 
+vector<shared_ptr<FunctionNode>>::iterator find_func_by_name(string _name);
 
 class Parser
 {
@@ -56,7 +57,6 @@ private:
 	void executive_while(shared_ptr<Statement> s);
 	void executive_for(shared_ptr<Statement> s);
 	void executive_if(shared_ptr<Statement> s);
-
 
 
 	//statement_deal
