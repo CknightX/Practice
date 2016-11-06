@@ -207,9 +207,19 @@ double string_to_int(string exp)
 		sum = -sum;
 	return sum;
 }
-template<class T>
-double LookforValue(string name, T  variable_list)
+
+
+
+double LookforValue(string name) 
 {
+	if (is_in_func)
+	{
+		for (auto i = (*(tmp_func.top()->v_list)).begin(); i != (*(tmp_func.top()->v_list)).end(); ++i)
+		{
+			if ((*i)->name == name)
+				return ((*i)->u.double_type);
+		}
+	}
 	for (auto i = variable_list.begin(); i != variable_list.end(); ++i)
 	{
 		if ((*i)->name == name)
@@ -217,8 +227,7 @@ double LookforValue(string name, T  variable_list)
 	}
 	throw name;
 }
-template<class T>
-double eval(string expression, T  variable_list) //求值 要求变量表为一个vector<shared_ptr> 且指针指向节点有name属性
+double eval(string expression) //求值 要求变量表为一个vector<shared_ptr> 且指针指向节点有name属性
 {
 
 	Scanner exp_scan;
@@ -226,20 +235,20 @@ double eval(string expression, T  variable_list) //求值 要求变量表为一个vector<s
 
 	stack<char> op; //表达式栈
 	stack<double> num; //数字栈
-			bool flag = false;
+	bool flag = false;
 
 	while (exp_scan.GetNextToken() != TOKEN_END)
 	{
 		switch (exp_scan.ICurrToken)
 		{
-			
+
 		case TOKEN_INT:
 		case TOKEN_FLOAT:
-				num.push(string_to_int(exp_scan.CurrToken));
+			num.push(string_to_int(exp_scan.CurrToken));
 			break;
 		case TOKEN_SUB:
 		case TOKEN_ADD:
-		
+
 		case TOKEN_MUL:
 		case TOKEN_DIV:
 		case TOKEN_OPEN_BRACKET:
@@ -256,7 +265,7 @@ double eval(string expression, T  variable_list) //求值 要求变量表为一个vector<s
 				op.push(op_to_char(exp_scan.CurrToken));
 			else if (compare_op(op.top(), op_to_char(exp_scan.CurrToken)) > 0)
 			{
-				while (!op.empty()&&op.top()!='('&&compare_op(op.top(), op_to_char(exp_scan.CurrToken)) > 0)
+				while (!op.empty() && op.top() != '('&&compare_op(op.top(), op_to_char(exp_scan.CurrToken)) > 0)
 				{
 					double num1, num2;
 					num2 = num.top();
@@ -275,7 +284,7 @@ double eval(string expression, T  variable_list) //求值 要求变量表为一个vector<s
 			}
 			break;
 		case TOKEN_CLOSE_BRACKET:
-			while (!op.empty() &&op.top()!='(')
+			while (!op.empty() && op.top() != '(')
 			{
 				double num1, num2;
 				num2 = num.top();
@@ -287,17 +296,18 @@ double eval(string expression, T  variable_list) //求值 要求变量表为一个vector<s
 				num.push(count_num(num1, c, num2));
 			}
 			if (op.empty())
-			{ }
+			{
+			}
 			else
 			{
 				if (op.top() != '(')
-				throw op.top();
+					throw op.top();
 				else
-				op.pop();
+					op.pop();
 			}
 			break;
 		case TOKEN_IDENT:
-			num.push(LookforValue(exp_scan.CurrToken, variable_list));
+			num.push(LookforValue(exp_scan.CurrToken));
 			break;
 		}
 
@@ -318,157 +328,157 @@ double eval(string expression, T  variable_list) //求值 要求变量表为一个vector<s
 	/*
 	auto compare_op = [](char l, char r)
 	{
-		if (l == '+' || l == '-')
-		{
-			if (r == '*' || r == '/')
-				return false;
-			else
-				return true;
-		}
-		else
-			return true;
+	if (l == '+' || l == '-')
+	{
+	if (r == '*' || r == '/')
+	return false;
+	else
+	return true;
+	}
+	else
+	return true;
 	};
 	char c;
 	auto is_num = [&c](){return (c >= '0'&&c <= '9'); };
 	auto is_alp = [&c](){return ((c >= 'a'&&c <= 'z') || (c >= 'A'&&c <= 'Z')); };
 	auto Count = [](double a, char b, double c)
 	{
-		switch (b)
-		{
-		case '+':
-			return a + c;
-			break;
-		case '-':
-			return a - c;
-			break;
-		case '*':
-			return a*c;
-			break;
-		case '/':
-			return a / c;
-			break;
-		default:
-			return 0.0;
-			break;
-		}
+	switch (b)
+	{
+	case '+':
+	return a + c;
+	break;
+	case '-':
+	return a - c;
+	break;
+	case '*':
+	return a*c;
+	break;
+	case '/':
+	return a / c;
+	break;
+	default:
+	return 0.0;
+	break;
+	}
 	};
 	int flag = 0;//0-start 1-num 2-ident 3-op
 	double sum = 0;
 	string ident = "";
 	for (auto i = expression.begin(); i != expression.end(); ++i)
 	{
-		c = *i;
-		if (is_num())
-		{
-			while (is_num())
-			{
-				sum = 10 * sum + c - '0';
-				if (i + 1 == expression.end())
-					break;
-				c = *(++i);
-			}
-			if (c == '.')
-			{
-				int j = 1;
-				c = *(++i);
+	c = *i;
+	if (is_num())
+	{
+	while (is_num())
+	{
+	sum = 10 * sum + c - '0';
+	if (i + 1 == expression.end())
+	break;
+	c = *(++i);
+	}
+	if (c == '.')
+	{
+	int j = 1;
+	c = *(++i);
 
-				while (is_num())
-				{
-					sum += pow(10, -(j++))*(c - '0');
-					if (i + 1 == expression.end())
-						break;
-					c = *(++i);
+	while (is_num())
+	{
+	sum += pow(10, -(j++))*(c - '0');
+	if (i + 1 == expression.end())
+	break;
+	c = *(++i);
 
-				}
+	}
 
-			}
-			num.push(sum);
-			sum = 0;
-			if (!is_num())
-				--i;
-		}
-		else if (is_alp())
-		{
-			while (is_alp() || is_num())
-			{
-				ident += c;
-				if (i + 1 == expression.end())
-					break;
-				c = *(++i);
-			}
-			try
-			{
-				sum = LookforValue(ident,variable_list);
-			}
-			catch (string s)
-			{
-				cout << "error,can't find " << s;
-				exit(1);
-			}
-			num.push(sum);
-			sum = 0;
-			ident = "";
-			if (!is_alp())
-				--i;
-		}
-		else if (c == '+' || c == '-' || c == '*' || c == '/' || c == '(')
-		{
-			if (op.empty() || c == '(')
-			{
-				op.push(c);
-			}
-			else if (c == '+' || c == '-')
-			{
-				while (!op.empty() && op.top() != '(')
-				{
-					double num2 = num.top();
-					num.pop();
-					double num1 = num.top();
-					num.pop();
-					num.push(Count(num1, op.top(), num2));
-					op.pop();
-				}
-				op.push(c);
-			}
-			else if (c == '*' || c == '/')
-			{
-				if (op.top() == '*' || op.top() == '/')
-				{
-					double num2 = num.top();
-					num.pop();
-					double num1 = num.top();
-					num.pop();
-					num.push(Count(num1, op.top(), num2));
-					op.pop();
-					op.push(c);
-				}
-				else
-					op.push(c);
-			}
+	}
+	num.push(sum);
+	sum = 0;
+	if (!is_num())
+	--i;
+	}
+	else if (is_alp())
+	{
+	while (is_alp() || is_num())
+	{
+	ident += c;
+	if (i + 1 == expression.end())
+	break;
+	c = *(++i);
+	}
+	try
+	{
+	sum = LookforValue(ident,variable_list);
+	}
+	catch (string s)
+	{
+	cout << "error,can't find " << s;
+	exit(1);
+	}
+	num.push(sum);
+	sum = 0;
+	ident = "";
+	if (!is_alp())
+	--i;
+	}
+	else if (c == '+' || c == '-' || c == '*' || c == '/' || c == '(')
+	{
+	if (op.empty() || c == '(')
+	{
+	op.push(c);
+	}
+	else if (c == '+' || c == '-')
+	{
+	while (!op.empty() && op.top() != '(')
+	{
+	double num2 = num.top();
+	num.pop();
+	double num1 = num.top();
+	num.pop();
+	num.push(Count(num1, op.top(), num2));
+	op.pop();
+	}
+	op.push(c);
+	}
+	else if (c == '*' || c == '/')
+	{
+	if (op.top() == '*' || op.top() == '/')
+	{
+	double num2 = num.top();
+	num.pop();
+	double num1 = num.top();
+	num.pop();
+	num.push(Count(num1, op.top(), num2));
+	op.pop();
+	op.push(c);
+	}
+	else
+	op.push(c);
+	}
 
-		}
-		else if (c == ')')
-		{
-			while (op.top() != '(')
-			{
-				double num2 = num.top();
-				num.pop();
-				double num1 = num.top();
-				num.pop();
-				num.push(Count(num1, op.top(), num2));
-				op.pop();
-			}
-			op.pop();
-		}
+	}
+	else if (c == ')')
+	{
+	while (op.top() != '(')
+	{
+	double num2 = num.top();
+	num.pop();
+	double num1 = num.top();
+	num.pop();
+	num.push(Count(num1, op.top(), num2));
+	op.pop();
+	}
+	op.pop();
+	}
 	}
 	while (!op.empty())
 	{
-		double num2 = num.top();
-		num.pop();
-		double num1 = num.top();
-		num.pop();
-		num.push(Count(num1, op.top(), num2));
-		op.pop();
+	double num2 = num.top();
+	num.pop();
+	double num1 = num.top();
+	num.pop();
+	num.push(Count(num1, op.top(), num2));
+	op.pop();
 	}
 	return num.top();
 	*/

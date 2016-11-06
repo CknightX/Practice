@@ -4,6 +4,7 @@
 #include<string>
 #include<vector>
 #include<stack>
+#include<queue>
 #include "scanner.h"
 using namespace std;
 
@@ -23,7 +24,8 @@ class StatementList;
 struct VariableNode;
 struct FunctionNode;
 
-
+extern stack<shared_ptr<FunctionNode>> tmp_func; //保存当前所调用的函数
+extern int is_in_func; //当前是否在执行函数
 
 extern vector<shared_ptr<Statement>> statement_list; //语句表
 extern vector<shared_ptr<FunctionNode>> func_list; //函数表
@@ -44,8 +46,6 @@ public:
 private: 
 	Scanner scanner;
 
-	bool is_in_func = false; //是否在函数体内
-
 	// 一遍扫描生成变量函数表
 	void assembly_statement();
 
@@ -57,13 +57,15 @@ private:
 	void executive_while(shared_ptr<Statement> s);
 	void executive_for(shared_ptr<Statement> s);
 	void executive_if(shared_ptr<Statement> s);
-
-
+	void _add_native_func(string name, int i);
+	void init_native_func(); //初始化原生函数表
 	//statement_deal
 	string deal_expression(int mode=0);
-
+	shared_ptr<vector<shared_ptr<VariableNode>>> deal_parameter_extern();
+	void deal_parameter_call(string func_name);
 	shared_ptr<Statement> deal_if();
 	shared_ptr<Statement> deal_while();
+
 	shared_ptr<Statement> deal_var_extern(vector<shared_ptr<VariableNode>> &variable_list);
 	shared_ptr<Statement> deal_statement(Token begin_state);
 	shared_ptr<Statement> deal_func_extern();

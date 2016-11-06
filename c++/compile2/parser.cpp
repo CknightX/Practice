@@ -1,7 +1,5 @@
-#include "parser.h"
-#include "eval.cpp"
 #define _CRT_SECURE_NO_WARNINGS
-
+#include "parser.h"
 vector<shared_ptr<Statement>> statement_list;
 vector<shared_ptr<FunctionNode>> func_list;
 vector<shared_ptr<VariableNode>> variable_list;
@@ -14,7 +12,7 @@ struct Statement
 {
 	StatementType type;
 	vector<string> para;
-	shared_ptr<StatementList> block;
+	shared_ptr<StatementList> block=nullptr;
 	shared_ptr<StatementList> else_block=nullptr;
 };
 
@@ -24,12 +22,12 @@ public:
 	vector<shared_ptr<Statement>> statement_list;
 };
 
-shared_ptr<FunctionNode> tmp_func; //保存当前所调用的函数
+stack<shared_ptr<FunctionNode>> tmp_func; //保存当前所调用的函数
+int is_in_func = 0; //当前是否在执行函数
 
 struct VariableNode
 {
 	VariableNode(){}
-	VariableNode(const string& _name, VariableType _type) :name(_name), type(_type){}
 	string name;
 	VariableType type;
 	union _u
@@ -42,10 +40,27 @@ struct VariableNode
 struct FunctionNode
 {
 	string name;
-	vector<shared_ptr<VariableNode>> v_list; //局部变量表，参数同样添加进来
+	shared_ptr<vector<shared_ptr<VariableNode>>> v_list; //局部变量表，参数同样添加进来
 	shared_ptr<StatementList> s_list; //函数体语句
+	FunctionNode(const FunctionNode& fc)
+	{
+		name = fc.name;
+		s_list = fc.s_list;
+		auto tmp_v_list = make_shared<vector<shared_ptr<VariableNode>>>();
+		for (auto i : (*fc.v_list))
+		{
+			auto tmp_v_node = make_shared<VariableNode>();
+			tmp_v_node->name = i->name;
+			tmp_v_node->type = i->type;
+			tmp_v_node->u = i->u;
+			tmp_v_list->push_back(tmp_v_node);
+		}
+		v_list = tmp_v_list;
+	}
+	FunctionNode(){}
 
 };
+#include "eval.cpp"
 	Parser::Parser(string path) :scanner(path){}
 	void Parser::Assembly()
 	{
@@ -97,9 +112,13 @@ struct FunctionNode
 			executive_if(s);
 			break;
 		case STATEMENT_FUNC_CALL:
-			is_in_func = true;
+			is_in_func++;
+			if (tmp_func.empty())
+				tmp_func.push( make_shared<FunctionNode>(*(*(find_func_by_name(s->para[0])))));
 			executive_func_call(s);
-			is_in_func = false;
+			tmp_func.pop();
+			
+			is_in_func--;
 			break;
 		case STATEMENT_NATIVE_FUNC_CALL:
 			executive_native_func_call(s);
@@ -119,14 +138,14 @@ struct FunctionNode
 	{
 		vector<shared_ptr<VariableNode>> _variable_list;
 		if (is_in_func)
-			_variable_list = tmp_func->v_list;
+			_variable_list = *(tmp_func.top())->v_list;
 		else
 			_variable_list = variable_list;
 		for (auto i = variable_list.begin(); i != variable_list.end(); ++i)
 		{
 			if ((*i)->name == s->para[0])
 			{
-				(*i)->u.double_type = eval(s->para[1],_variable_list);
+				(*i)->u.double_type = eval(s->para[1]);
 				break;
 			}
 			else if (i + 1 == variable_list.end())
@@ -135,30 +154,30 @@ struct FunctionNode
 			}
 		}
 	}
-	void Parser:: executive_native_func_call(shared_ptr<Statement> s)
+	void Parser::executive_native_func_call(shared_ptr<Statement> s)
 	{
-		vector<shared_ptr<VariableNode>> _variable_list;
-		if (is_in_func)
-			_variable_list = tmp_func->v_list;
-		else
-			_variable_list = variable_list;
-		string name = s->para[0];
-		if (name == "print")
+		if (s->para[0] == "print")
 		{
-			cout << eval(s->para[1], _variable_list);
+			cout << eval(s->para[1]);
 		}
-		else if (name == "newline")
+		else if (s->para[1] == "newline")
 		{
 			cout << endl;
 		}
+
 	}
 	void Parser:: executive_func_call(shared_ptr<Statement> s)
 	{
-		is_in_func = true; //在函数体内
 		for (auto i : func_list)
 		{
 			if (i->name == s->para[0])
 			{
+				int k = 0;
+				for (auto j = s->para.begin() + 1; j != s->para.end(); ++j)  //把实参计算出，并添加进函数的临时变量表
+				{
+					(*(i->v_list))[k++]->u.double_type = eval((*j));
+				}
+				tmp_func.push(make_shared<FunctionNode>(*(*(find_func_by_name(s->para[0])))));
 				for (auto j : i->s_list->statement_list)
 				{
 					executive_statement(j);
@@ -168,48 +187,34 @@ struct FunctionNode
 		}
 		throw;
 	}
-	void Parser:: executive_while(shared_ptr<Statement> s)
+	void Parser::executive_while(shared_ptr<Statement> s)
 	{
-		vector<shared_ptr<VariableNode>> _variable_list;
-		if (is_in_func)
-			_variable_list = tmp_func->v_list;
-		else
-			_variable_list = variable_list;
-		double value = eval(s->para[0], _variable_list);
+		double value = eval(s->para[0]);
 		while (value != 0)
 		{
 			for (auto i : s->block->statement_list)
 			{
 				executive_statement(i);
 			}
-		 value = eval(s->para[0], _variable_list);
+			value = eval(s->para[0]);
 		}
 	}
-	void Parser:: executive_for(shared_ptr<Statement> s)
+	void Parser::executive_for(shared_ptr<Statement> s)
 	{
-		vector<shared_ptr<VariableNode>> _variable_list;
-		if (is_in_func)
-			_variable_list = tmp_func->v_list;
-		else
-			_variable_list = variable_list;
 		executive_statement(s->else_block->statement_list[0]);
-		while (eval(s->para[0],_variable_list))
+		while (eval(s->para[0]))
 		{
 			for (auto i : s->block->statement_list)
 			{
 				executive_statement(i);
 			}
-				executive_statement(s->else_block->statement_list[1]);
+			executive_statement(s->else_block->statement_list[1]);
 		}
 	}
-	void Parser:: executive_if(shared_ptr<Statement> s)
+	void Parser::executive_if(shared_ptr<Statement> s)
 	{
-		vector<shared_ptr<VariableNode>> _variable_list;
-		if (is_in_func)
-			_variable_list = tmp_func->v_list;
-		else
-			_variable_list = variable_list;
-		double value = eval(s->para[0], _variable_list);
+
+		double value = eval(s->para[0]);
 		if (value == 0) //false
 		{
 			if (s->else_block)
@@ -233,7 +238,7 @@ struct FunctionNode
 
 	// 一遍扫描生成变量函数表
 
-	void Parser:: assembly_statement()
+	void Parser::assembly_statement()
 	{
 		while (scanner.GetNextToken() != TOKEN_END)
 		{
@@ -279,17 +284,13 @@ struct FunctionNode
 	}
 	shared_ptr<Statement> Parser::deal_var_extern(vector<shared_ptr<VariableNode>> &variable_list) //添加进哪一个变量表
 	{
-		vector<shared_ptr<VariableNode>> _variable_list;
-		if (is_in_func)
-			_variable_list = tmp_func->v_list;
-		else
-			_variable_list = variable_list;
+
 		string expression;
 		auto var_node = make_shared<VariableNode>();
 		scanner.GetNextToken();
 		string name = scanner.CurrToken;
 		scanner.GetNextToken(); //  =/;
-		if (scanner.ICurrToken == TOKEN_SEMI || scanner.ICurrToken == TOKEN_CLOSE_BRACKET || scanner.ICurrToken == TOKEN_COLON) //无初始值
+		if (scanner.ICurrToken == TOKEN_SEMI || scanner.ICurrToken == TOKEN_CLOSE_BRACKET || scanner.ICurrToken == TOKEN_COMMA) //无初始值
 		{
 			expression = "0";
 		}
@@ -298,8 +299,9 @@ struct FunctionNode
 			expression = deal_expression();
 		}
 		var_node->name = name;
+		var_node->u.double_type = eval(expression);
+		var_node->type = TYPE_DOUBLE;
 		variable_list.push_back(var_node);
-		var_node->u.double_type = eval(expression, _variable_list);
 
 		return nullptr;
 
@@ -341,18 +343,27 @@ struct FunctionNode
 		}
 		return statement_node;
 	}
+
 	shared_ptr<Statement> Parser::deal_func_extern()
 	{
+		auto func_node = make_shared<FunctionNode>();
+		scanner.GetNextToken(); //func name
+		func_node->name = scanner.CurrToken;
+		func_node->v_list = deal_parameter_extern();
+		func_node->s_list = deal_block();
+		func_list.push_back(func_node);
+		return nullptr;
+		/*
 		auto func_node = make_shared<FunctionNode>();
 		scanner.GetNextToken(); //func name
 		string name = scanner.CurrToken;
 		scanner.GetNextToken(); //(
 		while (1)
 		{
-			auto i = scanner.GetNextToken();
-			if (i == TOKEN_OPEN_BRACE || i == TOKEN_CLOSE_BRACKET)
-				break;
-			deal_var_extern((func_node->v_list)); //将函数参数放入临时变量表
+		auto i = scanner.GetNextToken();
+		if (i == TOKEN_OPEN_BRACE || i == TOKEN_CLOSE_BRACKET)
+		break;
+		deal_var_extern(*(func_node->v_list)); //将函数参数放入临时变量表
 		}
 		scanner.PutToken();
 		auto _statement_list = make_shared<StatementList>();
@@ -361,12 +372,11 @@ struct FunctionNode
 		func_node->s_list = _statement_list;
 		func_list.push_back(func_node);
 		return nullptr;
-
-	}
-	shared_ptr<vector<VariableNode>> deal_func_extern_para()
-	{
+		*/
 		return nullptr;
 	}
+
+
 	shared_ptr<Statement> Parser::deal_for()   // for (i=0;i<10;i=i+1)
 	{
 		auto for_statement = make_shared<Statement>();
@@ -385,21 +395,10 @@ struct FunctionNode
 		for_statement->para.push_back(mid_expression);
 		return for_statement;
 	}
+
 	shared_ptr<Statement> Parser::deal_func_call(string _name)
 	{
 		auto func_statement = make_shared<Statement>();
-		scanner.GetNextToken(); // (
-		auto i = find_func_by_name(_name);
-		if (i == func_list.end())
-			throw;
-		int j = 0;
-		while (scanner.GetNextToken() != TOKEN_SEMI)
-		{
-			string p = deal_expression();
-			((*i)->v_list[j])->u.double_type = eval(p, variable_list);
-			((*i)->v_list[j++])->type = TYPE_DOUBLE;
-		}
-		func_statement->para.push_back(_name);
 		if (find(native_func.begin(), native_func.end(), _name) != native_func.end()) //native func
 		{
 			func_statement->type = STATEMENT_NATIVE_FUNC_CALL;
@@ -408,6 +407,15 @@ struct FunctionNode
 		{
 			func_statement->type = STATEMENT_FUNC_CALL;
 		}
+		scanner.GetNextToken(); // (
+		func_statement->para.push_back(_name);
+		while (scanner.GetNextToken() != TOKEN_SEMI)
+		{
+			scanner.PutToken();
+			string exp = deal_expression();
+			func_statement->para.push_back(exp);
+		}
+
 		return func_statement;
 	}
 
@@ -421,6 +429,20 @@ struct FunctionNode
 			}
 		}
 		return func_list.end();
+	}
+	shared_ptr<vector<shared_ptr<VariableNode>>> Parser::deal_parameter_extern()
+	{
+		auto para_variable_list = make_shared<vector<shared_ptr<VariableNode>>>();
+		scanner.GetNextToken();  //(
+		if (scanner.ICurrToken != TOKEN_OPEN_BRACKET)
+			throw;
+		shared_ptr<VariableNode> tmp;
+		while (scanner.GetNextToken() != TOKEN_OPEN_BRACE)
+		{
+			deal_var_extern(*para_variable_list);
+		}
+		scanner.PutToken();
+		return para_variable_list;
 	}
 	shared_ptr<StatementList> Parser::deal_block()  //语句块
 	{
@@ -442,9 +464,9 @@ struct FunctionNode
 		Token tmp;
 		int num = 0;
 		bool flag = false;
-		if (mode==0) //默认模式 
-		while ((tmp = scanner.GetNextToken()) != TOKEN_SEMI&&tmp!=TOKEN_COMMA)
-		{
+		if (mode == 0) //默认模式 
+			while ((tmp = scanner.GetNextToken()) != TOKEN_SEMI&&tmp != TOKEN_COMMA)
+			{
 			if (scanner.ICurrToken == TOKEN_OPEN_BRACE)
 			{
 				scanner.PutToken();
@@ -461,9 +483,9 @@ struct FunctionNode
 			if (num == -1)
 				break;
 			expression += scanner.CurrToken;
-		
 
-		}
+
+			}
 		return expression;
 	}
 	shared_ptr<Statement> Parser::deal_var_assign(string _name)
@@ -477,15 +499,47 @@ struct FunctionNode
 		return statement_tmp;
 
 	}
+	void Parser::_add_native_func(string name, int i) //命名及参数个数
+	{
+		auto func_node = make_shared<FunctionNode>();
+		func_node->name = name;
+		auto v_list = make_shared<vector<shared_ptr<VariableNode>>>();
+		for (int j = 0; j < i; ++i)
+		{
+			auto v_node = make_shared<VariableNode>();
+			char str[10];
+			sprintf(str, "%c", 'a' + j);
+			v_node->name = string(str);
+			v_list->push_back(v_node);
+		}
+		func_node->v_list = v_list;
+		func_list.push_back(func_node);
+	}
+	void Parser::init_native_func()
+	{
+		_add_native_func("print", 1);
+		_add_native_func("newline", 0);
+	}
 
-
+	void Parser::deal_parameter_call(string func_name)
+	{
+		auto func = find_func_by_name(func_name);
+		scanner.GetNextToken(); //(
+		int i = 0;
+		while (scanner.GetNextToken() != TOKEN_OPEN_BRACE)
+		{
+			string exp = deal_expression();
+			(*((*func)->v_list))[i]->u.double_type = eval(exp);
+		}
+		scanner.PutToken();
+	}
 
 
 	int main()
 	{
 		cout << "--------------------" << endl;
-		cout << "script is running..."<<endl;
-		cout << "--------------------"<<endl;
+		cout << "script is running..." << endl;
+		cout << "--------------------" << endl;
 		Parser a("D:\\1.txt");
 		try
 		{
