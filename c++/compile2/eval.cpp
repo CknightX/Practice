@@ -6,8 +6,7 @@
 #include<string>
 #include<stdexcept>
 #include<memory>
-#include "scanner.h"
-using namespace std;
+#include "eval.h"
 
 const int num_op = 14; //ÔËËã·û¸öÊı
 //ÔËËã·ûË³Ğò£º + - * / % ( == != > < >= <= && ||
@@ -210,29 +209,55 @@ double string_to_int(string exp)
 
 
 
-double LookforValue(string name) 
+VariableNode LookforValue(string name, v_Variable& a , shared_ptr<v_Variable> b ) //È«¾ÖÔÚÇ°£¬¾Ö²¿ÔÚºó
 {
-	if (is_in_func)
+	if (b) //Èç¹û´«ÈëÁ½¸ö²ÎÊı
 	{
-		for (auto i = (*(tmp_func.top()->v_list)).begin(); i != (*(tmp_func.top()->v_list)).end(); ++i)
+		for (auto i = b->begin(); i != b->end(); ++i)
 		{
 			if ((*i)->name == name)
-				return ((*i)->u.double_type);
+				return *((*i));
 		}
 	}
-	for (auto i = variable_list.begin(); i != variable_list.end(); ++i)
+	for (auto i = a.begin(); i != a.end(); ++i)
 	{
 		if ((*i)->name == name)
-			return ((*i)->u.double_type);
+			return *((*i));
 	}
 	throw name;
 }
-double eval(string expression) //ÇóÖµ ÒªÇó±äÁ¿±íÎªÒ»¸övector<shared_ptr> ÇÒÖ¸ÕëÖ¸Ïò½ÚµãÓĞnameÊôĞÔ
+string eval_string(string expression)
 {
-
+	string result = "";
 	Scanner exp_scan;
 	exp_scan.LoadString(expression);
-
+	while (exp_scan.GetNextToken() != TOKEN_END)
+	{
+		switch (exp_scan.ICurrToken)
+		{
+		case TOKEN_STRING:
+			result+= exp_scan.CurrToken;
+			break;
+		}
+	}
+	return result;
+}
+VariableNode eval(string expression, v_Variable& a , shared_ptr<v_Variable> b ) //ÇóÖµ  µÚÒ»¸öÎªÈ«¾Ö±äÁ¿±í£¬µÚ¶ş¸öÎª¾Ö²¿±äÁ¿±í
+{
+	VariableNode result;
+	Scanner exp_scan;
+	exp_scan.LoadString(expression);
+	if (exp_scan.GetNextToken() == TOKEN_STRING)  //Ë«ÒıºÅ
+	{
+		result.type = TYPE_STRING;
+		result.u.string_type = eval_string(expression);
+		return result;
+	}
+	else
+	{
+		exp_scan.PutToken();
+		result.type = TYPE_DOUBLE;
+	}
 	stack<char> op; //±í´ïÊ½Õ»
 	stack<double> num; //Êı×ÖÕ»
 	bool flag = false;
@@ -307,7 +332,7 @@ double eval(string expression) //ÇóÖµ ÒªÇó±äÁ¿±íÎªÒ»¸övector<shared_ptr> ÇÒÖ¸ÕëÖ
 			}
 			break;
 		case TOKEN_IDENT:
-			num.push(LookforValue(exp_scan.CurrToken));
+			num.push((LookforValue(exp_scan.CurrToken,a,b)).u.double_type);
 			break;
 		}
 
@@ -323,7 +348,8 @@ double eval(string expression) //ÇóÖµ ÒªÇó±äÁ¿±íÎªÒ»¸övector<shared_ptr> ÇÒÖ¸ÕëÖ
 		op.pop();
 		num.push(count_num(num1, c, num2));
 	}
-	return num.top();
+	result.u.double_type = num.top();
+	return result;
 
 	/*
 	auto compare_op = [](char l, char r)

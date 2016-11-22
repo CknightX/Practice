@@ -142,7 +142,7 @@ Token Scanner::_GetNextToken()
             {
                 curr_status=STATUS_INT;
             }
-            else if (c=='"')
+            else if (c=='\"')
             {
                 is_add=false;
                 curr_status=STATUS_STRING;
@@ -180,6 +180,17 @@ Token Scanner::_GetNextToken()
 				throw except_scanner(EXCEPT_UNDEFINE, c,"undefine char",Line,Index);
             }
             break;
+		case STATUS_STRING:
+			if (c != '\"')
+			{
+
+			}
+			else
+			{
+				is_add = false;
+				is_end = true;
+			}
+			break;
         case STATUS_IDENT:
             if (!IsAlp(c)&&!(IsNum(c)))
             {
@@ -326,6 +337,10 @@ Token Scanner::_GetNextToken()
             return TOKEN_COLON;
 		else if (CurrToken == ";")
 			return TOKEN_SEMI;
+		else if (CurrToken == "'")
+			return TOKEN_SINGLE_QUOTE;
+		else if (CurrToken == "\"")
+			return  TOKEN_DOUBLE_QUOTE;
 		break;
 	case STATUS_OP:
 		 if (CurrToken == "=")
@@ -358,6 +373,8 @@ Token Scanner::_GetNextToken()
 		else if (CurrToken == "%")
 			return TOKEN_MOD;
 		break;
+	case STATUS_STRING:
+		return TOKEN_STRING;
     }
 
 }
@@ -371,6 +388,8 @@ void Scanner::InitAllVec()
 {
     //Delim
     DelimVec.push_back(',');
+    DelimVec.push_back('\'');
+    DelimVec.push_back('\"');
     DelimVec.push_back(':');
     DelimVec.push_back(';');
     DelimVec.push_back('(');
