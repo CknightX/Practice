@@ -37,33 +37,29 @@ public:
 		RootPath = path;
 		_Build(path,Root);
 	}
-	void _Build(string path,Node *&root)
-	{
-		root = new Node;
-		WIN32_FIND_DATA data;
-		HANDLE hFind;
-		hFind = FindFirstFile((path).c_str(), &data);
-		root->FileData = data;
-		hFind = FindFirstFile((path + "\\*.*").c_str(), &data);
-		do
-		{
-			if (string(data.cFileName) == "." || string(data.cFileName) == "..")
-			{
-				continue;
-			}
-			Node *tmp = new Node;
-			if (data.dwFileAttributes == FILE_ATTRIBUTE_DIRECTORY) //文件夹
-			{
-				_Build(path + "\\" + data.cFileName, tmp);
-			}
-			tmp->FileData = data;
-			root->child.push_back(tmp);
-		} while (FindNextFile(hFind, &data));
-	}
 	void Check()
 	{
 		_Build(RootPath, CheckRoot);
 		_Check(Root,CheckRoot,""); //比较两棵树
+	}
+	~FileTree()
+	{
+		destruction(Root);
+		destruction(CheckRoot);
+	}
+private:
+	Node *Root;
+	Node *CheckRoot;
+	string RootPath;
+	void destruction(Node *root)
+	{
+		for (auto i : root->child)
+		{
+			if (i->FileData.dwFileAttributes == FILE_ATTRIBUTE_DIRECTORY)
+				destruction(i);
+			else
+				delete i;
+		}
 	}
 	void _Check(Node *root,Node *check_root,string curr_path) //同文件夹比较
 	{
@@ -114,14 +110,29 @@ public:
 		}
 
 	}
-	~FileTree()
+	void _Build(string path,Node *&root)
 	{
-
+		root = new Node;
+		WIN32_FIND_DATA data;
+		HANDLE hFind;
+		hFind = FindFirstFile((path).c_str(), &data);
+		root->FileData = data;
+		hFind = FindFirstFile((path + "\\*.*").c_str(), &data);
+		do
+		{
+			if (string(data.cFileName) == "." || string(data.cFileName) == "..")
+			{
+				continue;
+			}
+			Node *tmp = new Node;
+			if (data.dwFileAttributes == FILE_ATTRIBUTE_DIRECTORY) //文件夹
+			{
+				_Build(path + "\\" + data.cFileName, tmp);
+			}
+			tmp->FileData = data;
+			root->child.push_back(tmp);
+		} while (FindNextFile(hFind, &data));
 	}
-private:
-	Node *Root;
-	Node *CheckRoot;
-	string RootPath;
 };
 int main()
 {
