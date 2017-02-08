@@ -1,4 +1,5 @@
-﻿#include<iostream>
+﻿/*本程序用来检测某目录下，若干文件操作后文件的差异*/
+#include<iostream>
 #include<windows.h>
 #include<string>
 #include<vector>
@@ -124,11 +125,13 @@ private:
 			{
 				continue;
 			}
-			Node *tmp = new Node;
+			Node *tmp;
 			if (data.dwFileAttributes == FILE_ATTRIBUTE_DIRECTORY) //文件夹
 			{
 				_Build(path + "\\" + data.cFileName, tmp);
 			}
+			else
+				tmp = new Node;
 			tmp->FileData = data;
 			root->child.push_back(tmp);
 		} while (FindNextFile(hFind, &data));
