@@ -2,11 +2,21 @@ import urllib
 import urllib.request
 import re
 import gzip
+import time
+import socket
+
+#下载选项
+
+ID='3282985385' #帖子ID
+socket.setdefaulttimeout(5) #超时设置
+
 class StrTools:
     removeImg=re.compile('<img.*?>')
     removeAddr=re.compile('<a.*?>|</a>')
     replaceBR=re.compile('<br>')
     replaceAt=re.compile(r'@.+?<')
+    removeDiv=re.compile(r'<div.+?>|</div>')
+    removeCc=re.compile(r'</cc>|<cc>')
     matchTitle=re.compile('(.+?)_')
     matchBar=re.compile('_(.+?)_')
     def replace(self,x):
@@ -14,6 +24,8 @@ class StrTools:
         x=re.sub(self.removeAddr,'',x)
         x=re.sub(self.replaceBR,'\n',x)
         x=re.sub(self.replaceAt,'<',x)
+        x=re.sub(self.removeCc,'',x)
+        x=re.sub(self.removeDiv,'',x)
         return x.strip()
     def title_match(self,x):
         L=[]
@@ -21,9 +33,15 @@ class StrTools:
         L.append(re.search(self.matchBar,x).group(1))
         return L
 class Tieba:
-    def __init__(self,ID,see_lz):
+    def __init__(self,ID,IS_ONLYLZ,IS_FLOOR):
+        self.f=0
         self.StrTool=StrTools()
         self.curr_page=1
+        if IS_ONLYLZ == True:
+            see_lz='1'
+        else:
+            see_lz='0'
+        self.is_floor=IS_FLOOR
         self.base_url='http://tieba.baidu.com/p/'+ID+'?see_lz='+see_lz+'&pn='
         self.first_page=self.__get_page_data(1)
         try:
@@ -59,11 +77,17 @@ class Tieba:
             url=self.base_url+str(page_num)
             data=urllib.request.urlopen(url).read().decode('utf-8')
         except:
-            print('打开失败，请检查网络。')
-            input()
-            exit()
+            self.f=self.f+1
+            if self.f>=10:
+                print('打开失败，请检查网络。')
+                self.file.close()
+                input()
+                exit()
+            else:
+                return self.__get_page_data(page_num)
         else:
             return data
+            self.f=0
     def __get_title(self):
         match=re.search(r'<title>(.+?)</title>',self.first_page,re.S)
         try:
@@ -72,7 +96,7 @@ class Tieba:
             raise
     def __extract_content(self,data):
         contents=[]
-        for floor in re.findall('<div id="post_content.+?>(.+?)</div>',data,re.S):
+        for floor in re.findall('<div id="post_content.+?>(.+?</div>.+?)</div>',data,re.S):
             tmp=self.StrTool.replace(floor)
             contents.append(tmp.encode('utf-8'))
         return contents
@@ -80,11 +104,14 @@ class Tieba:
         return self.__extract_content(self.__get_page_data(page))
     def __write_list2file(self,List):
         for L in List:
-            self.file.write(('\n\n---------%d楼---------\n'%self.curr_page).encode('utf-8'))
-            self.curr_page=self.curr_page+1
+            if self.is_floor==True:
+                self.file.write(('\n\n---------%d楼---------\n'%self.curr_page).encode('utf-8'))
+                self.curr_page=self.curr_page+1
+            else:
+                self.file.write('\n\n'.encode('utf-8'))
             self.file.write(L)
 
-tieba=Tieba('5016902050','0')
+tieba=Tieba(ID,True,True)
 tieba.download()
 print('下载完成！')
 input()
