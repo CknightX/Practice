@@ -14,8 +14,8 @@ def walk(dir):
                 sum=sum+d
                 print('%s:%d行'%(_path,d))
                 file.close()
-        for _dir in dirs: #子目录递归执行
-            walk(dir+ _dir)
+        #for _dir in dirs: #子目录递归执行
+            #walk(dir+ _dir)
 walk('.\\')
 print('总行数:%d'%sum)
 input()
