@@ -1,131 +1,9 @@
-#lang scheme
-(define a (list 1 2 3))
-(define b (list 4 5 6))
-(define x (cons a b))
-(define y (list (list 1 2) (list 3 4)))
-y
-
-
-(define (fib n)
-  (define (fib-iter a b m)
-    (if (= m 0)
-        a
-        (fib-iter b (+ a b) (- m 1))))
-  (fib-iter 1 1 n))
-
-
-(define (print-fib n)
-  (if (not (< n 0))
-     (cons (fib n) (print-fib (- n 1)))
-      null))
-
-(print-fib 10)
-
-(define (even-fibs n)
-  (define (next k)
-    (if (> k n)
-        null
-        (let ((f (fib k)))
-        (if (even? f)
-            (cons f (next (+ k 1)))
-            (next (+ k 1))))))
-  (next 0))
-
-
-(define (filter proc items)
-  (if (proc (car items))
-      (cons (car items) (filter proc (cdr items)))
-      null))
-
-(filter odd? (list 1 2 3 4 5))
-
-
-(define (memq item x)
-  (cond ((null? x) false)
-        ((eq? item (car x)) x)
-        (else (memq item (cdr x)))))
-
-
-
-(define (variable? x) (symbol? x))
-(define (same-variable? v1 v2)
-  (and (variable? v1) (variable? v2) (eq? v1 v2)))
-
-(define (=number? exp num)
-  (and (number? exp) (= exp num)))
-
-(define (make-sum a1 a2)
-  (cond ((=number? a1 0) a2)
-        ((=number? a2 0) a1)
-        ((and (number? a1) (number? a2)) (+ a1 a2))
-        (else (list '+ a1 a2))))
-
-(define (make-product m1 m2)
-  (cond ((or (=number? m1 0) (=number? m2 0)) 0)
-        ((=number? m1 1) m2)
-        ((=number? m2 1) m1)
-        ((and (number? m1) (number? m2)) (* m1 m2))
-        (else (list '* m1 m2))))
-
-(define (sum? x)
-  (and (pair? x) (eq? (car x) '+)))
-(define (addend s) (cadr s)) ; 被加数
-(define (augend s) (caddr s)); 加数
-
-(define (product? x)
-  (and (pair? x) (eq? (car x) '*)))
-(define (multiplier s) (cadr s)) ; 被乘数
-(define (multiplicand s) (caddr s)); 乘数
-
-(define (deriv exp var)
-  (cond ((number? exp) 0)
-        ((variable? exp)
-         (if (same-variable? exp var) 1 0))
-        ((sum? exp)
-         (make-sum (deriv (addend exp) var)
-                   (deriv (augend exp) var)))
-        ((product? exp)
-         (make-sum
-          (make-product (multiplier exp)
-                        (deriv (multiplicand exp) var))
-          (make-product (deriv (multiplier exp) var)
-                        (multiplicand exp))))
-        (else
-         (error "unknown expression type -- DERIV" exp))))
-
-(define (element-of-set? x set)
-  (cond ((null? set) false)
-        ((equal? x (car set)) true)
-        (else (element-of-set? x (cdr set)))))
-
-(define (adjoin-set x set)
-  (if (element-of-set? x set)
-      set
-      (cons x set)))
-
-(adjoin-set 1 (list 2 3 4 1))
-
-
-(define (extreme comp items)
-  (cond ((null? (cdr items)) (car items))
-        ((comp (car items) (extreme comp (cdr items))) (car items))
-        (else (extreme comp (cdr items)))))
-
-(define (max items)
-  (extreme > items))
-(define (min items)
-  (extreme < items))
-
-
-
-
-
-
 (define (make-leaf symbol weight)
   (list 'leaf symbol weight))
 
 (define (leaf? object)
   (eq? (car object) 'leaf))
+
 (define (symbol-leaf x)
   (cadr x))
 
@@ -138,11 +16,59 @@ y
         (+ (weight left) (weight right))))
 
 (define (left-branch tree) (car tree))
-(define (right-branch tree) (cdr tree))
+(define (right-branch tree) (cadr tree))
 
 (define (symbols tree)
   (if (leaf? tree)
       (list (symbol-leaf tree))
       (caddr tree)))
 
-(define (weight tree))
+(define (weight tree)
+  (if (leaf? tree)
+      (weight-leaf tree)
+      (cadddr tree))) ;由上面make-code-tree可知，weight位于表第4个位置
+
+(define (decode bits tree)
+  (define (decode-1 bits current-branch)
+  (if (null? bits)
+      '()
+      (let ((next-branch
+             (choose-branch (car bits) current-branch)))
+        (if (leaf? next-branch)
+            (cons
+             (symbol-leaf next-branch)
+             (decode-1 (cdr bits) tree))
+                  (decode-1 (cdr bits) next-branch)))))
+    (decode-1 bits tree))
+
+(define (choose-branch bit branch)
+  (cond ((= bit 0) (left-branch branch))
+        ((= bit 1)(right-branch branch))
+        (else (error "bad bit"))))
+
+(define (adjoin-set x set)
+  (cond ((null? set) (list x))
+        ((< (weight x) (weight (car set))) (cons x set))   ;x<min(set) 所以放集合最前
+        (else (cons (car set)
+                    (adjoin-set x (cdr set)))))) ; x比当前set元素大,所以x属于(cdr set)
+
+(define (make-leaf-set pairs)
+  (if (null? pairs)
+      '()
+      (let ((pair (car pairs)))
+        (adjoin-set (make-leaf (car pair)
+                               (cadr pair))
+                    (make-leaf-set(cdr pairs))))))
+
+(define sample-tree
+  (make-code-tree(make-leaf 'A 4)
+                 (make-code-tree
+                  (make-leaf 'B 2)
+                  (make-code-tree (make-leaf 'D 1)
+                                  (make-leaf 'C 1)))))
+
+(print sample-tree)
+
+(define sample-message '(0 1 1 0 0 1 0 1 0 1 1 1 0))
+
+(decode sample-message sample-tree)
