@@ -67,7 +67,7 @@ def standard_env():
         'begin': lambda *x:x[-1],
         'car': lambda x:x[0],
         'cdr': lambda x:x[1:],
-        'cons': lambda x,y:[x]+y,
+        'cons': lambda x,y:[x,y],
         'eq?':op.is_,
         'equal?':op.eq,
         'length':len,
@@ -82,6 +82,7 @@ def standard_env():
         'procedure?':callable,
         'round':round,
         'symbol?':lambda x:isinstance(x,Symbol),
+        'display':print
     })
     return env
 
@@ -101,13 +102,21 @@ def define2lambda(parms,body):
     return ['lambda',parms,body]
 
 def body2begin(body):
-    begin_exp=['begin']
-    begin_exp.extend(body)
-    return begin_exp
+    if len(body)==1:
+        return body[0]
+    elif len(body)>1:
+        begin_exp=['begin']
+        begin_exp.extend(body)
+        return begin_exp
+    else:
+        raise SyntaxError(' ')
 
 def eval(x, env=global_env):
     if isinstance(x,Symbol): #变量
-        return env.find(x)[x]
+        if x[0]=="'":  #引用表达式
+            return eval(['quote',x[1:]])
+        else:
+            return env.find(x)[x]
     elif not isinstance(x,list):
         return x
     elif x[0]=='quote':
@@ -131,7 +140,7 @@ def eval(x, env=global_env):
         env.find(var)[var]=eval(exp,env)
     elif x[0]=='lambda':
         (_,parms,body)=x
-        return Procedure(parms,body2begin(body),env) #返回一个过程
+        return Procedure(parms,body,env) #返回一个过程
     elif x[0]=='cond':
        exp=x[1:]
        return eval(cond2if(exp),env)
@@ -154,23 +163,13 @@ def schemestr(exp):  #convert python object to scheme-readable string.
         return str(exp)
 
 
-program='''
-(define (cons x y)
-  (define (dispatch m)
-    (cond ((= m 0) x)
-          ((= m 1) y)))
-  dispatch)
-
-(define (car z) (z 0))
-(define (cdr z) (z 1))
-
-(cdr (cons 2 15))
-'''
+program=open('D:\\1.txt','r').read()
 
 program2='''
 (define (x y) (begin (define z 10) (* z y)))
 (x 50)
 '''
+program3 = '(begin (+ 1 2) (+ 3 4))'
 
 tokens=tokenize(program)
 while len(tokens):
