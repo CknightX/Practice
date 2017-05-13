@@ -87,6 +87,24 @@ def standard_env():
 
 global_env = standard_env()
 
+
+def cond2if(cond_clauses):
+    if len(cond_clauses)==0:
+        return None
+    clause=cond_clauses.pop(0)
+    if clause[0]=='else':
+        return clause[1]
+    else:
+        if_exp=['if',clause[0],clause[1],cond2if(cond_clauses)]
+        return if_exp
+def define2lambda(parms,body):
+    return ['lambda',parms,body]
+
+def body2begin(body):
+    begin_exp=['begin']
+    begin_exp.extend(body)
+    return begin_exp
+
 def eval(x, env=global_env):
     if isinstance(x,Symbol): #变量
         return env.find(x)[x]
@@ -100,14 +118,24 @@ def eval(x, env=global_env):
         exp=(conseq if eval(test,env) else alt) 
         return eval(exp,env)
     elif x[0]=='define':
-        (_,var,exp)=x
-        env[var]=eval(exp,env) #拷贝外部环境，并加入约束
+        if isinstance(x[1],Symbol): #变量定义
+            (_,var,exp)=x
+            env[var]=eval(exp,env) #拷贝外部环境，并加入约束
+        else: #过程定义
+            var=x[1][0]
+            parms=x[1][1:]
+            body=x[2:]
+            env[var]= Procedure(parms,body2begin(body),env)
     elif x[0]=='set!':
         (_,var,exp)=x
         env.find(var)[var]=eval(exp,env)
     elif x[0]=='lambda':
         (_,parms,body)=x
-        return Procedure(parms,body,env) #返回一个过程
+        return Procedure(parms,body2begin(body),env) #返回一个过程
+    elif x[0]=='cond':
+       exp=x[1:]
+       return eval(cond2if(exp),env)
+    
     else: #procedure call
         proc=eval(x[0],env)
         args=[eval(arg,env) for arg in x[1:]] #非惰性求值
@@ -127,14 +155,26 @@ def schemestr(exp):  #convert python object to scheme-readable string.
 
 
 program='''
-(define make-account
-    (lambda (balance)
-        (lambda (amt)
-            (begin (set! balance (+ balance amt))
-                balance))))
+(define (cons x y)
+  (define (dispatch m)
+    (cond ((= m 0) x)
+          ((= m 1) y)))
+  dispatch)
+
+(define (car z) (z 0))
+(define (cdr z) (z 1))
+
+(cdr (cons 2 15))
 '''
-program2='(define account1 (make-account 100.00))'
-program3='(account1 -20.00)'
-print(eval(parse(program)))
-print(eval(parse(program2)))
-print(eval(parse(program3)))
+
+program2='''
+(define (x y) (begin (define z 10) (* z y)))
+(x 50)
+'''
+
+tokens=tokenize(program)
+while len(tokens):
+    L=read_from_tokens(tokens)
+    result=eval(L)
+    if result:
+        print(result)
