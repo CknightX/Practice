@@ -3,8 +3,10 @@
 import re
 import math
 import operator as op
+from functools import reduce
 
 Symbol=str
+Number=int
 
 class Procedure(object):
     def __init__(self,parms,body,env):
@@ -22,7 +24,7 @@ class Env(dict):
 def tokenize(chars): #切分token
     return chars.replace('(',' ( ').replace(')',' ) ').split()
 
-def parse(program): #生成语法树
+def parse(program): #生成语法
     return read_from_tokens(tokenize(program))
 def read_from_tokens(tokens):
     if len(tokens)==0:
@@ -47,6 +49,28 @@ def atom(token): #将token转化为语法树元素
         except ValueError:
             return Symbol(token)
 
+def and_exp(*items):
+    for x in items:
+        if not x:
+            return False
+    return True
+def or_exp(*items):
+    for x in items:
+        if x:
+            return True
+    return False
+def list2cons(items):
+    if len(items)==0:
+        return []
+    else:
+        return [items[0],list2cons(items[1:])]
+
+def append(list1,list2):
+    if list1==[]:
+        return list2
+    else:
+        return [list1[0],append(list1[1],list2)]
+
 
 def standard_env():
     env=Env()
@@ -62,27 +86,31 @@ def standard_env():
         '<=':op.le,
         '=':op.eq,
         'abs':abs,
-        'append':op.add,
+        'append':append,
         #'apply':apply,
+        'and':and_exp,#lambda *x:reduce (lambda a,b:a and b,x) ,
+        'or':or_exp,#lambda *x:reduce (lambda a,b:a or b,x) ,
         'begin': lambda *x:x[-1],
         'car': lambda x:x[0],
-        'cdr': lambda x:x[1:],
+        'cdr': lambda x:x[1],
         'cons': lambda x,y:[x,y],
-        'eq?':op.is_,
         'equal?':op.eq,
         'length':len,
-        'list':lambda *x:list(x),
+        'list':lambda *x:list2cons(x),
+        'eq?':lambda x,y:x==y,
         'list?':lambda x:isinstance(x,list),
+        'null?': lambda x:x==[],
+        'number?':lambda x:isinstance(x,Number),
+        'procedure?':callable,
+        'pair?':lambda x:isinstance(x,list),
         'map':map,
         'max':max,
         'min':min,
         'not':op.not_,
-        'null?': lambda x:x==[],
-        'number?':lambda x:isinstance(x,Number),
-        'procedure?':callable,
         'round':round,
         'symbol?':lambda x:isinstance(x,Symbol),
-        'display':print
+        'display':print,
+        'null':[]
     })
     return env
 
@@ -110,7 +138,16 @@ def body2begin(body):
         return begin_exp
     else:
         raise SyntaxError(' ')
-
+def cadr2nest(i,x):   # (cadr x) -> (car (cdr x))
+    c=x[0][i]
+    if c=='a':
+        return ['car',cadr2nest(i+1,x)]
+    elif c=='d':
+        return ['cdr',cadr2nest(i+1,x)]
+    elif c=='r':
+        return x[1]
+            
+            
 def eval(x, env=global_env):
     if isinstance(x,Symbol): #变量
         if x[0]=="'":  #引用表达式
@@ -144,7 +181,10 @@ def eval(x, env=global_env):
     elif x[0]=='cond':
        exp=x[1:]
        return eval(cond2if(exp),env)
-    
+
+    elif x[0][0]=='c' and x[0][-1]=='r' and len(x[0])>3:  #caddr cadr
+        return eval(cadr2nest(1,x))
+
     else: #procedure call
         proc=eval(x[0],env)
         args=[eval(arg,env) for arg in x[1:]] #非惰性求值
@@ -158,22 +198,33 @@ def repl(prompt='scheme>'):  #read-eval-print-loop
 
 def schemestr(exp):  #convert python object to scheme-readable string.
     if isinstance(exp,list):
-        return '('+''.join(map(schemestr,exp))+')'
+        if exp==[]:
+            return ')'
+        else:
+            return '('+''.join(map(schemestr,exp))
     else:
         return str(exp)
 
 
+def convertstr(exp):
+    if exp==[]:
+        return ') '
+    elif isinstance(exp[0],list):
+        return '( '+convertstr(exp[0])+convertstr(exp[1])
+    else:
+        return str(exp[0])+' '+convertstr(exp[1])
+
+            
+
 program=open('D:\\1.txt','r').read()
 
-program2='''
-(define (x y) (begin (define z 10) (* z y)))
-(x 50)
-'''
-program3 = '(begin (+ 1 2) (+ 3 4))'
+
+a=[1,2,3]
 
 tokens=tokenize(program)
+
 while len(tokens):
     L=read_from_tokens(tokens)
     result=eval(L)
-    if result:
-        print(result)
+    if result!=None:
+        print('( '+convertstr(result))
