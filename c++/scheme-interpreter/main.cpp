@@ -36,16 +36,15 @@ int main()
 #include<iostream>
 #include<vector>
 #include<string>
-#include "lexer.h"
+#include "parser.h"
+#include "eval.h"
 using namespace std;
 int main()
 {
-
-	Lexer a;
-	a.load_from_str("(define x (lambda (x) (* x x)))");
-	while (!a.is_end)
-	{
-		cout << a.get_next_token() << endl;
-	}
+	Parser a("(define y (* 2 2)");
+	Env* env = new Env;
+	Eval b(new Env);
+	auto ast = a.get_ast();
+	b.eval(ast, env);
 	cin.get();
 }

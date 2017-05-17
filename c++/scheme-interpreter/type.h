@@ -11,8 +11,6 @@
 class Type;
 class Env;
 
-typedef std::vector<std::string> parms_name_list;
-typedef std::vector<Type*> parms_value_list;
 
 enum TYPE
 {
@@ -69,7 +67,7 @@ public:
 class Type_Define :public Type
 {
 public:
-	Type_Define() :Type(DEFINE){}
+	Type_Define(const std::string& name,Type* value) :Type(DEFINE),name(name),value(value){}
 
 	std::string name;
 	Type* value;
@@ -100,7 +98,7 @@ public:
 class Type_Variable :public Type
 {
 public:
-	Type_Variable(const std::string& name,Type* value) :Type(VARIABLE),name(name),value(value){}
+	Type_Variable(const std::string& name) :Type(VARIABLE),name(name),value(value){}
 	std::string name;
 	Type* value;
 };
@@ -123,7 +121,7 @@ class Type_Apply:public Type
 {
 public:
 	Type_Apply(const std::string& name,parms_value_list& parms) 
-		:Type(VARIABLE),name(name),parms(parms){}
+		:Type(APPLY),name(name),parms(parms){}
 	std::string name;
 	Type_Procedure* procedure;
 	parms_value_list parms;

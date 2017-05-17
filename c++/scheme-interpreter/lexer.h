@@ -9,6 +9,7 @@ class Lexer
 {
 public:
 	Lexer() :index(0),is_end(false),is_go_next(true){}
+	Lexer(const std::string& source) :source(source), is_go_next(true){}
 	~Lexer(){}
 public:
 	void load_from_file(std::string path);

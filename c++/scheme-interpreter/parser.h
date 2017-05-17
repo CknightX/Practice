@@ -1,6 +1,7 @@
 #ifndef _PARSER_H
 #define _PARSER_H
 #include "type.h"
+#include<string>
 /*Óï·¨·ÖÎöÆ÷*/
 
 #include "lexer.h"
@@ -9,8 +10,8 @@ class Parser
 {
 public:
 	Parser() :root(nullptr){}
-	Parser(Lexer& lexer);
-	Type* get_ast();
+	Parser(const std::string& source) :lexer(source){}
+	Type* get_ast(){ return deal_expression(); }
 private:
 	Type* deal_expression();
 	Type* deal_define();

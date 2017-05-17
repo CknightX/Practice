@@ -30,16 +30,15 @@ double string2double(std::string num)
 Type* Parser::deal_expression()
 {
 	Type* result = nullptr;
-	std::string c = lexer.get_next_token();
 	std::string str = lexer.get_next_token();
-	if (c[0] == '(')
+	if (str[0] == '(')
 	{
 		str = lexer.get_next_token();
 		if (str == "define")
 		{
 			result = deal_define();
 		}
-		if (str == "lambda")
+		else if (str == "lambda")
 		{
 			result = deal_lambda();
 		}
@@ -47,6 +46,7 @@ Type* Parser::deal_expression()
 		{
 			result = new Type_Apply(str, deal_parms_value());
 		}
+		lexer.get_next_token(); //)
 	}
 	else
 	{
@@ -58,10 +58,9 @@ Type* Parser::deal_expression()
 		}
 		else  //variable
 		{
-
+			return new Type_Variable(str);
 		}
 	}
-	lexer.get_next_token(); //)
 	return result;
 }
 
@@ -74,7 +73,7 @@ Type* Parser::deal_lambda()
 Type* Parser::deal_define()
 {
 	std::string name = lexer.get_next_token();
-	return new Type_Variable(name, deal_expression());
+	return new Type_Define(name, deal_expression());
 }
 
 std::vector<std::string> Parser::deal_parms_name()
@@ -88,5 +87,16 @@ std::vector<std::string> Parser::deal_parms_name()
 }
 Type* Parser::deal_parm_value()
 {
-
+	return (deal_expression());
+}
+std::vector<Type*> Parser::deal_parms_value()
+{
+	std::vector<Type*> parms;
+	while ((lexer.get_next_token()) != ")")
+	{
+		lexer.put_formal_token();
+		parms.push_back(deal_expression());
+	}
+	lexer.put_formal_token();
+	return parms;
 }

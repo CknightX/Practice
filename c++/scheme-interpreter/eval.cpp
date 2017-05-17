@@ -72,16 +72,17 @@ Type* Eval::eval_base_procedure(Type* type, Env* env)
 
 Type* Eval::eval_if(Type* type, Env* env)
 {
-
+	return nullptr;
 }
 
 Type* Eval::eval_lambda(Type* type, Env* env)
 {
-
+	return nullptr;
 }
 
 Type* Eval::eval_variable(Type* type, Env* env)
 {
 	auto exp_variable = static_cast<Type_Variable*>(type);
-	return eval(exp_variable->value,env);
+	std::string name = exp_variable->name;
+	return eval(env->find(name), env);
 }

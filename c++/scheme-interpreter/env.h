@@ -2,12 +2,14 @@
 #define _ENV_H
 #include<map>
 #include<string>
-#include "type.h"
+#include <vector>
 
 /*环境*/
 class Type;
 
 typedef std::map<std::string, Type*> name_type;
+typedef std::vector<std::string> parms_name_list;
+typedef std::vector<Type*> parms_value_list;
 
 class Env
 {
@@ -23,7 +25,15 @@ public:
 	}
 	~Env(){}
 public:
-	Type* find();
+	Type* find(std::string name)
+	{
+		if (env.count(name) > 0)
+			return env[name];
+		else if (outer == nullptr)
+			return nullptr;
+		else
+			return outer->find(name);
+	}
 
 	name_type env;
 	Env* outer; //外部环境
