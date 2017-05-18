@@ -23,8 +23,6 @@ enum TYPE
 	TRUE,
 	FALSE,
 
-	BASE_TYPE,
-	BASE_TYPE_INT,
 	BASE_TYPE_DOUBLE,
 	BASE_TYPE_STRING,
 
@@ -32,15 +30,21 @@ enum TYPE
 	BASE_PROCEDURE_SUB,
 	BASE_PROCEDURE_MUL,
 	BASE_PROCEDURE_DIV,
+	BASE_PROCEDURE_G,
+	BASE_PROCEDURE_L,
+	BASE_PROCEDURE_E,
+	BASE_PROCEDURE_GE,
+	BASE_PROCEDURE_LE,
+	BASE_PROCEDURE_CONS,
+	BASE_PROCEDURE_BEGIN,
 
 };
 
-enum BASE_TYPE_
-{
-	INT,DOUBLE,STRING
-};
 
-class Type
+/*
+	可求值类型
+*/
+class Type //类型基类
 {
 public:
 	Type(TYPE type) :type_info(type){}
@@ -50,21 +54,21 @@ public:
 
 };
 
-class Type_True :public Type
+class Type_True :public Type //True类型
 {
 public:
 	Type_True() :Type(TRUE){}
 
 	
 };
-class Type_False :public Type
+class Type_False :public Type //False类型
 {
 public:
 	Type_False() :Type(FALSE){}
 
 };
 
-class Type_Define :public Type
+class Type_Define :public Type  //Define类型 --> (define ... ...)
 {
 public:
 	Type_Define(const std::string& name,Type* value) :Type(DEFINE),name(name),value(value){}
@@ -73,7 +77,7 @@ public:
 	Type* value;
 
 };
-class Type_BaseType :public Type
+class Type_BaseType :public Type //基础类型 --> double string
 {
 public:
 	Type_BaseType(TYPE type) :Type(type){}
@@ -83,19 +87,17 @@ public:
 		double value_double;
 	}u;
 
-
-
 };
 
-class Type_BaseProcedureApply :public Type
+class Type_BaseProcedureApply :public Type //基本过程apply --> + - * / ...
 {
 public:
 	Type_BaseProcedureApply(TYPE type) :Type(type){}
-
+	Env* outer_env;
 	parms_value_list parms;
 };
 
-class Type_Variable :public Type
+class Type_Variable :public Type //变量类型 
 {
 public:
 	Type_Variable(const std::string& name) :Type(VARIABLE),name(name),value(value){}
@@ -103,7 +105,7 @@ public:
 	Type* value;
 };
 
-class Type_Procedure :public Type
+class Type_Procedure :public Type //过程类型 --> (lambda <parms> <procedure> )
 {
 public:
 	Type_Procedure(parms_name_list& parms, Type* body)
@@ -117,23 +119,22 @@ public:
 };
 
 
-class Type_Apply:public Type
+class Type_Apply:public Type //apply类型 --> (<procedure> <parms>)
 {
 public:
 	Type_Apply(const std::string& name,parms_value_list& parms) 
 		:Type(APPLY),name(name),parms(parms){}
 	std::string name;
-	Type_Procedure* procedure;
 	parms_value_list parms;
 
 };
 
-class Type_If :public Type
+class Type_If :public Type //if类型 --> (if condition conseq alter)
 {
 public:
-	Type_If() :Type(IF){}
+	Type_If(Type* condition,Type* conseq,Type* alter) 
+		:Type(IF),condition(condition),conseq(conseq),alter(alter){}
 
-private:
 	Type* condition;
 	Type* conseq;
 	Type* alter;

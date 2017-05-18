@@ -24,6 +24,7 @@ double string2double(std::string num)
 			throw "unexpected \".\"";
 		}
 	}
+	return sum;
 }
 
 
@@ -31,6 +32,8 @@ Type* Parser::deal_expression()
 {
 	Type* result = nullptr;
 	std::string str = lexer.get_next_token();
+	if (lexer.is_end)
+		return result;
 	if (str[0] == '(')
 	{
 		str = lexer.get_next_token();
@@ -42,9 +45,80 @@ Type* Parser::deal_expression()
 		{
 			result = deal_lambda();
 		}
+		else if (str == "if")
+		{
+			result = deal_if();
+		}
 		else //apply
 		{
-			result = new Type_Apply(str, deal_parms_value());
+			if (str == "+")
+			{
+				auto tmp = new Type_BaseProcedureApply(BASE_PROCEDURE_ADD);
+				tmp->parms = deal_parms_value();
+				result = tmp;
+			} 
+			else if (str == "-")
+			{
+				auto tmp = new Type_BaseProcedureApply(BASE_PROCEDURE_SUB);
+				tmp->parms = deal_parms_value();
+				result = tmp;
+			}
+			else if (str == "*")
+			{
+				auto tmp = new Type_BaseProcedureApply(BASE_PROCEDURE_MUL);
+				tmp->parms = deal_parms_value();
+				result = tmp;
+			}
+			else if (str == "/")
+			{
+				auto tmp = new Type_BaseProcedureApply(BASE_PROCEDURE_DIV);
+				tmp->parms = deal_parms_value();
+				result = tmp;
+			}
+			else if (str == ">")
+			{
+				auto tmp = new Type_BaseProcedureApply(BASE_PROCEDURE_G);
+				tmp->parms = deal_parms_value();
+				result = tmp;
+			}
+			else if (str == "<")
+			{
+				auto tmp = new Type_BaseProcedureApply(BASE_PROCEDURE_L);
+				tmp->parms = deal_parms_value();
+				result = tmp;
+			}
+			else if (str == "=")
+			{
+				auto tmp = new Type_BaseProcedureApply(BASE_PROCEDURE_E);
+				tmp->parms = deal_parms_value();
+				result = tmp;
+			}
+			else if (str == ">=")
+			{
+				auto tmp = new Type_BaseProcedureApply(BASE_PROCEDURE_GE);
+				tmp->parms = deal_parms_value();
+				result = tmp;
+			}
+			else if (str == "<=")
+			{
+				auto tmp = new Type_BaseProcedureApply(BASE_PROCEDURE_LE);
+				tmp->parms = deal_parms_value();
+				result = tmp;
+			}
+			else if (str == "cons")
+			{
+				auto tmp = new Type_BaseProcedureApply(BASE_PROCEDURE_CONS);
+				tmp->parms = deal_parms_value();
+				result = tmp;
+			}
+			else if (str == "begin")
+			{
+				auto tmp = new Type_BaseProcedureApply(BASE_PROCEDURE_BEGIN);
+				tmp->parms = deal_parms_value();
+				result = tmp;
+			}
+			else
+				result = new Type_Apply(str, deal_parms_value());
 		}
 		lexer.get_next_token(); //)
 	}
@@ -67,13 +141,22 @@ Type* Parser::deal_expression()
 
 Type* Parser::deal_lambda()
 {
-	return new Type_Procedure(deal_parms_name(), deal_expression());
+	auto parms = deal_parms_name();
+	auto exp = deal_expression();
+	return new Type_Procedure(parms, exp);
 }
 
 Type* Parser::deal_define()
 {
 	std::string name = lexer.get_next_token();
 	return new Type_Define(name, deal_expression());
+}
+Type* Parser::deal_if()
+{
+	auto condition = deal_expression();
+	auto conseq = deal_expression();
+	auto alter = deal_expression();
+	return new Type_If(condition,conseq,alter);
 }
 
 std::vector<std::string> Parser::deal_parms_name()
@@ -99,4 +182,12 @@ std::vector<Type*> Parser::deal_parms_value()
 	}
 	lexer.put_formal_token();
 	return parms;
+}
+std::vector<Type*> Parser::get_all_ast()
+{
+	std::vector<Type*> result;
+	Type* exp = nullptr;
+	while (exp=deal_expression())
+		result.push_back(exp);
+	return result;
 }

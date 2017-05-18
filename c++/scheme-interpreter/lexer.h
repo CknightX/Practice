@@ -19,7 +19,7 @@ public:
 
 	bool is_end;
 private:
-	int index;
+	size_t index;
 	std::string curr_token;
 	bool is_go_next;
 	char get_char(){ if (index >= source.size())return 0; return source[index++]; }

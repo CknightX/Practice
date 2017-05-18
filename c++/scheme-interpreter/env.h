@@ -5,6 +5,8 @@
 #include <vector>
 
 /*»·¾³*/
+
+
 class Type;
 
 typedef std::map<std::string, Type*> name_type;

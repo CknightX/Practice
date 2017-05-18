@@ -2,6 +2,7 @@
 #define _PARSER_H
 #include "type.h"
 #include<string>
+#include<vector>
 /*Óï·¨·ÖÎöÆ÷*/
 
 #include "lexer.h"
@@ -11,10 +12,12 @@ class Parser
 public:
 	Parser() :root(nullptr){}
 	Parser(const std::string& source) :lexer(source){}
-	Type* get_ast(){ return deal_expression(); }
+	Type* get_one_ast(){ return deal_expression(); }
+	std::vector<Type*> get_all_ast();
 private:
 	Type* deal_expression();
 	Type* deal_define();
+	Type* deal_if();
 	Type* deal_base_procedure();
 	Type* deal_procedure();
 	Type* deal_apply();
