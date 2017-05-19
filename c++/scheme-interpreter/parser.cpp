@@ -31,9 +31,9 @@ double string2double(std::string num)
 Type* Parser::deal_expression()
 {
 	Type* result = nullptr;
-	std::string str = lexer.get_next_token();
 	if (lexer.is_end)
 		return result;
+	std::string str = lexer.get_next_token();
 	if (str[0] == '(')
 	{
 		str = lexer.get_next_token();
@@ -51,6 +51,7 @@ Type* Parser::deal_expression()
 		}
 		else //apply
 		{
+			/*内置过程*/
 			if (str == "+")
 			{
 				auto tmp = new Type_BaseProcedureApply(BASE_PROCEDURE_ADD);
@@ -117,6 +118,19 @@ Type* Parser::deal_expression()
 				tmp->parms = deal_parms_value();
 				result = tmp;
 			}
+			else if (str == "cond")
+			{
+
+			}
+			else if (str == "append")
+			{
+
+			}
+			else if (str == "map")
+			{
+
+			}
+			/*自定义过程*/
 			else
 				result = new Type_Apply(str, deal_parms_value());
 		}

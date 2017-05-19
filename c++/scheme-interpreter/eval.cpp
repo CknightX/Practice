@@ -1,5 +1,6 @@
 #include "eval.h"
 #include "type.h"
+#include<iostream>
 Type* Eval::eval(Type* type, Env* env)
 {
 	Type* result = nullptr;
@@ -310,4 +311,18 @@ Type* Eval::eval_base_procedure_begin(Type_BaseProcedureApply* base_procedure, E
 {
 	return nullptr;
 
+}
+void Eval::convert_scheme2str(Type* type)
+{
+	if (!type)
+		return;
+
+	switch (type->type_info)
+	{
+	case BASE_TYPE_DOUBLE:
+		std::cout << static_cast<Type_BaseType*>(type)->u.value_double << std::endl;
+		break;
+	default:
+		break;
+	}
 }

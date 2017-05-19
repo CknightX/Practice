@@ -12,8 +12,8 @@ public:
 
 	Type* eval(Type* type,Env* env);
 	Type* eval(Type* type){ return eval(type, base_env); }
+	void convert_scheme2str(Type* type);
 private:
-	std::string scheme_type2str(Type* type); //将scheme的类型转化为文本
 	Env* base_env;
 	void create_base_env();
 

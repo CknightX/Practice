@@ -93,7 +93,6 @@ class Type_BaseProcedureApply :public Type //基本过程apply --> + - * / ...
 {
 public:
 	Type_BaseProcedureApply(TYPE type) :Type(type){}
-	Env* outer_env;
 	parms_value_list parms;
 };
 
