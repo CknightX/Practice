@@ -44,7 +44,7 @@ std::string Lexer::get_next_token()
 			}
 			break;
 		case 1:
-			if (c == ' '||c=='\n' || c == '('||c==')')
+			if (c == ' '||c=='\n' ||c=='\t'|| c == '('||c==')')
 			{
 				is_add = false;
 				is_finish = true;

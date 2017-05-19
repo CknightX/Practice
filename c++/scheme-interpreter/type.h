@@ -20,9 +20,9 @@ enum TYPE
 	BEGIN,
 	VARIABLE,
 	IF,
-	TRUE,
-	FALSE,
 
+	BASE_TYPE_TRUE,
+	BASE_TYPE_FALSE,
 	BASE_TYPE_DOUBLE,
 	BASE_TYPE_STRING,
 
@@ -57,14 +57,14 @@ public:
 class Type_True :public Type //True类型
 {
 public:
-	Type_True() :Type(TRUE){}
+	Type_True() :Type(BASE_TYPE_TRUE){}
 
 	
 };
 class Type_False :public Type //False类型
 {
 public:
-	Type_False() :Type(FALSE){}
+	Type_False() :Type(BASE_TYPE_FALSE){}
 
 };
 
