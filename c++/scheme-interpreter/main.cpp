@@ -6,11 +6,13 @@
 #include "test.h"
 int main()
 {
-	
-	
+
+	std::string code = "(- 1 2)";
+ 
 	Parser a(CODE5);
 	Env* env = new Env;
 	Eval b(env);
+	b.create_base_env();
 	auto source = a.get_all_ast(); 
 	Type* result = nullptr;
 	for (auto code_line : source)

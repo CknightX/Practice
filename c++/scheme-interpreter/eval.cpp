@@ -58,12 +58,34 @@ Type* Eval::eval_procedure(Type* type,Env* env) //过程定义
 
 Type* Eval::eval_apply(Type* type, Env* env)
 {
+	
+
 	auto exp_apply = static_cast<Type_Apply*>(type);
 	std::vector<Type*> value_parms;
 	for (auto i : exp_apply->parms)
 		value_parms.push_back(eval(i, env));  //对参数求值
+
 	auto procedure = static_cast<Type_Procedure*>(env->find(exp_apply->name));
 
+	switch (procedure->type_info)
+	{
+	case BASE_PROCEDURE_ADD:
+	case BASE_PROCEDURE_SUB:
+	case BASE_PROCEDURE_MUL:
+	case BASE_PROCEDURE_DIV:
+	case BASE_PROCEDURE_G:
+	case BASE_PROCEDURE_L:
+	case BASE_PROCEDURE_E:
+	case BASE_PROCEDURE_GE:
+	case BASE_PROCEDURE_LE:
+	case BASE_PROCEDURE_CONS:
+	case BASE_PROCEDURE_BEGIN:
+		Type* _procedure = procedure;
+		auto base_apply = static_cast<Type_BaseProcedureApply*>(_procedure);
+		base_apply->parms = value_parms;
+		return eval(base_apply, env);
+		break;
+	}
 	auto curr_env = new Env(procedure->parms, value_parms, procedure->outer_env);
 	return eval(procedure->body, curr_env);
 }
@@ -72,7 +94,7 @@ Type* Eval::eval_apply(Type* type, Env* env)
 Type* Eval::eval_define(Type* type, Env* env)
 {
 	auto type_define = static_cast<Type_Define*>(type);
-	(*env).env[type_define->name] = eval(type_define->value,env);
+	(*env).env[type_define->name] = eval(type_define->value, env);
 	return nullptr;
 }
 Type* Eval::eval_base_procedure(Type* type, Env* env)
@@ -180,7 +202,7 @@ Type* Eval::eval_base_procedure_mul(Type_BaseProcedureApply* base_procedure, Env
 	bool is_first = true;
 	for (auto i : base_procedure->parms)
 	{
-			result->u.value_double *= static_cast<Type_BaseType*>(eval(i, env))->u.value_double;
+		result->u.value_double *= static_cast<Type_BaseType*>(eval(i, env))->u.value_double;
 	}
 	return result;
 }
@@ -316,7 +338,6 @@ void Eval::convert_scheme2str(Type* type)
 {
 	if (!type)
 		return;
-
 	switch (type->type_info)
 	{
 	case BASE_TYPE_DOUBLE:
@@ -325,4 +346,16 @@ void Eval::convert_scheme2str(Type* type)
 	default:
 		break;
 	}
+}
+void Eval::create_base_env()
+{
+	base_env->env["+"] = new Type_BaseProcedureApply(BASE_PROCEDURE_ADD);
+	base_env->env["-"] = new Type_BaseProcedureApply(BASE_PROCEDURE_SUB);
+	base_env->env["*"] = new Type_BaseProcedureApply(BASE_PROCEDURE_MUL);
+	base_env->env["/"] = new Type_BaseProcedureApply(BASE_PROCEDURE_DIV);
+	base_env->env["="] = new Type_BaseProcedureApply(BASE_PROCEDURE_E);
+	base_env->env[">"] = new Type_BaseProcedureApply(BASE_PROCEDURE_G);
+	base_env->env["<"] = new Type_BaseProcedureApply(BASE_PROCEDURE_L);
+	base_env->env[">="] = new Type_BaseProcedureApply(BASE_PROCEDURE_GE);
+	base_env->env["<="] = new Type_BaseProcedureApply(BASE_PROCEDURE_LE);
 }

@@ -51,7 +51,7 @@ Type* Parser::deal_expression()
 		}
 		else //apply
 		{
-			/*内置过程*/
+			/*
 			if (str == "+")
 			{
 				auto tmp = new Type_BaseProcedureApply(BASE_PROCEDURE_ADD);
@@ -118,10 +118,6 @@ Type* Parser::deal_expression()
 				tmp->parms = deal_parms_value();
 				result = tmp;
 			}
-			else if (str == "cond")
-			{
-
-			}
 			else if (str == "append")
 			{
 
@@ -130,9 +126,8 @@ Type* Parser::deal_expression()
 			{
 
 			}
-			/*自定义过程*/
-			else
-				result = new Type_Apply(str, deal_parms_value());
+			*/
+			result = new Type_Apply(str, deal_parms_value());
 		}
 		lexer.get_next_token(); //)
 	}

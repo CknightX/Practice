@@ -13,9 +13,9 @@ public:
 	Type* eval(Type* type,Env* env);
 	Type* eval(Type* type){ return eval(type, base_env); }
 	void convert_scheme2str(Type* type);
+	void create_base_env(); //创建基本环境
 private:
 	Env* base_env;
-	void create_base_env();
 
 	/*类型求值*/
 	Type* eval_if(Type* type, Env* env);
