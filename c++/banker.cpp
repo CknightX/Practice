@@ -1,13 +1,29 @@
 #include <iostream>
 #include <vector>
 #include <algorithm>
+#include <fstream>
+#include <string>
 using namespace std;
 class Banker
 {
 	public:
 		Banker(){}
 		~Banker(){deallocate();}
-		void get_data()
+		void get_data_from_file(string path)
+		{
+            data_file.open("D:\\data.txt");
+            if (data_file.fail())
+                cout<<"error, file is not exist";
+            data_file>>num_p>>num_s;
+            init();
+            for (int i=0;i<num_p;++i)
+				for (int j=0;j<num_s*2;++j)
+					data_file>>table[i][j];
+            for (int i=0;i<num_s;++i)
+				data_file>>available[i];
+            data_file.close();
+		}
+		void get_data_from_type()
 		{
 			cout<<"process,source:"<<endl;
 			cin>>num_p>>num_s;
@@ -35,19 +51,22 @@ class Banker
 			int *tmp=new int[num_s];
 			bool result;
 			int i;
-			for (i=0;i<num_s;++i)tmp[i]=table[no][i];
+			for (i=0;i<num_s;++i)tmp[i]=table[no][i]; // backup allocation
 			for (i=0;i<num_s;++i)
 			{
 				if (request[i]<=table[no][num_s+i]&&request[i]<=available[i])
+                {
+                }
 				else
 					break;
 			}
-			if (i==num_s)
+			if (i==num_s) // it can request
 			{
 				for (i=0;i<num_s;++i)
 				{
-					table[no][i]+=tmp[i];
-					table[no][num_s+i]-=tmp[i];
+					table[no][i]+=request[i];
+					table[no][num_s+i]-=request[i];
+					available[i]-=request[i];
 				}
 				if (is_safe())
 					result=true;
@@ -55,18 +74,15 @@ class Banker
 					result=false;
 			}
 
-			for (i=0;i<num_s;++i)
+			for (i=0;i<num_s;++i)  //recover
 			{
-				table[no][i]-=tmp[i];
-				table[no][num_s+i]+=tmp[i];
+				table[no][i]-=request[i];
+                table[no][num_s+i]+=request[i];
+                available[i]+=request[i];
 			}
+			delete[] tmp;
 			return result;
 		}
-		bool request_change(int no,int *request)
-		{
-
-		}
-
 	private:
 		bool is_find;
 		bool is_getResult()
@@ -87,7 +103,7 @@ class Banker
 			{
 				for_each(result.begin(),result.end(),[](const int& no){cout<<no<<' ';});
 				cout<<endl;
-			}	
+			}
 			for (int j=0;j<num_p;++j)
 			{
 				if (finish[j])continue;
@@ -107,7 +123,7 @@ class Banker
 			for (j=0;j<num_s;++j)
 				if (table[i][j+num_s]>available[j])
 					break;
-			return j==num_s; 
+			return j==num_s;
 		}
 		void init()
 		{
@@ -129,13 +145,17 @@ class Banker
 			delete[]table;
 		}
 		int num_p,num_s;
-		int **table,*available,*finish;
-		vector<int>result;
+		int **table,*available,*finish; //table->(allocation,need)
+		vector<int>result;  //result
+		ifstream data_file;
 };
 int main()
 {
 	Banker banker;
-	banker.get_data();
-	banker.is_safe();
+	banker.get_data_from_file("D:\\data.txt");
+	cout<<banker.is_safe()<<endl;
+	int req[3]={1,0,2};
+	cout<<banker.request(1,req);
 	return 0;
 }
+
