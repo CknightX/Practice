@@ -40,5 +40,7 @@ private:
 	Type* eval_base_procedure_less_equal(Type_BaseProcedureApply* base_procedure, Env* env);
 	Type* eval_base_procedure_cons(Type_BaseProcedureApply* base_procedure, Env* env);
 	Type* eval_base_procedure_begin(Type_BaseProcedureApply* base_procedure, Env* env);
+	Type* eval_base_procedure_car(Type_BaseProcedureApply* base_procedure, Env* env);
+	Type* eval_base_procedure_cdr(Type_BaseProcedureApply* base_procedure, Env* env);
 };
 #endif

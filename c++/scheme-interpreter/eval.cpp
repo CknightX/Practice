@@ -27,6 +27,7 @@ Type* Eval::eval(Type* type, Env* env)
 		result = eval_if(type, env);
 		break;
 	case BASE_TYPE_DOUBLE:
+	case BASE_TYPE_CONS:
 		result = eval_base_type(type, env);
 		break;
 	case BASE_PROCEDURE_ADD:
@@ -40,6 +41,8 @@ Type* Eval::eval(Type* type, Env* env)
 	case BASE_PROCEDURE_LE:
 	case BASE_PROCEDURE_CONS:
 	case BASE_PROCEDURE_BEGIN:
+	case BASE_PROCEDURE_CAR:
+	case BASE_PROCEDURE_CDR:
 		result = eval_base_procedure(type, env);
 		break;
 	}
@@ -80,6 +83,8 @@ Type* Eval::eval_apply(Type* type, Env* env)
 	case BASE_PROCEDURE_LE:
 	case BASE_PROCEDURE_CONS:
 	case BASE_PROCEDURE_BEGIN:
+	case BASE_PROCEDURE_CAR:
+	case BASE_PROCEDURE_CDR:
 		Type* _procedure = procedure;
 		auto base_apply = static_cast<Type_BaseProcedureApply*>(_procedure);
 		base_apply->parms = value_parms;
@@ -135,13 +140,22 @@ Type* Eval::eval_base_procedure(Type* type, Env* env)
 	case BASE_PROCEDURE_BEGIN:
 		return eval_base_procedure_begin(base_procedure, env);
 		break;
+	case BASE_PROCEDURE_CAR:
+		return eval_base_procedure_car(base_procedure, env);
+		break;
+	case BASE_PROCEDURE_CDR:
+		return eval_base_procedure_cdr(base_procedure, env);
+		break;
 	}
 }
+
+
 
 Type* Eval::eval_base_type(Type* type, Env* env)
 {
 	return type;
 }
+
 
 
 Type* Eval::eval_if(Type* type, Env* env)
@@ -326,13 +340,30 @@ Type* Eval::eval_base_procedure_less_equal(Type_BaseProcedureApply* base_procedu
 }
 Type* Eval::eval_base_procedure_cons(Type_BaseProcedureApply* base_procedure, Env* env)
 {
-	return nullptr;
-
+	if (base_procedure->parms.size() != 2)
+		throw "cons need 2 paras!";
+	return new Type_Cons(base_procedure->parms[0], base_procedure->parms[1]);
 }
+
 Type* Eval::eval_base_procedure_begin(Type_BaseProcedureApply* base_procedure, Env* env)
 {
 	return nullptr;
 
+}
+
+Type* Eval::eval_base_procedure_car(Type_BaseProcedureApply* base_procedure, Env* env)
+{
+	if (base_procedure->parms.size() != 1)
+		throw "car need 1 parms!";
+	auto cons_type = static_cast<Type_Cons*>(base_procedure->parms[0]);
+	return eval(cons_type->left);
+}
+Type* Eval::eval_base_procedure_cdr(Type_BaseProcedureApply* base_procedure, Env* env)
+{
+	if (base_procedure->parms.size() != 1)
+		throw "cdr need 1 parms!";
+	auto cons_type = static_cast<Type_Cons*>(base_procedure->parms[0]);
+	return eval(cons_type->right);
 }
 void Eval::convert_scheme2str(Type* type)
 {
@@ -349,6 +380,7 @@ void Eval::convert_scheme2str(Type* type)
 }
 void Eval::create_base_env()
 {
+	//初始化基本环境
 	base_env->env["+"] = new Type_BaseProcedureApply(BASE_PROCEDURE_ADD);
 	base_env->env["-"] = new Type_BaseProcedureApply(BASE_PROCEDURE_SUB);
 	base_env->env["*"] = new Type_BaseProcedureApply(BASE_PROCEDURE_MUL);
@@ -358,4 +390,8 @@ void Eval::create_base_env()
 	base_env->env["<"] = new Type_BaseProcedureApply(BASE_PROCEDURE_L);
 	base_env->env[">="] = new Type_BaseProcedureApply(BASE_PROCEDURE_GE);
 	base_env->env["<="] = new Type_BaseProcedureApply(BASE_PROCEDURE_LE);
+	base_env->env["cons"] = new Type_BaseProcedureApply(BASE_PROCEDURE_CONS);
+	base_env->env["begin"] = new Type_BaseProcedureApply(BASE_PROCEDURE_BEGIN);
+	base_env->env["car"] = new Type_BaseProcedureApply(BASE_PROCEDURE_CAR);
+	base_env->env["cdr"] = new Type_BaseProcedureApply(BASE_PROCEDURE_CDR);
 }

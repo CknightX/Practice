@@ -25,6 +25,7 @@ enum TYPE
 	BASE_TYPE_FALSE,
 	BASE_TYPE_DOUBLE,
 	BASE_TYPE_STRING,
+	BASE_TYPE_CONS,
 
 	BASE_PROCEDURE_ADD,
 	BASE_PROCEDURE_SUB,
@@ -37,6 +38,8 @@ enum TYPE
 	BASE_PROCEDURE_LE,
 	BASE_PROCEDURE_CONS,
 	BASE_PROCEDURE_BEGIN,
+	BASE_PROCEDURE_CAR,
+	BASE_PROCEDURE_CDR,
 
 };
 
@@ -140,6 +143,13 @@ public:
 
 };
 
+class Type_Cons :public Type
+{
+public:
+	Type_Cons(Type* left, Type* right)
+		:Type(BASE_TYPE_CONS), left(left), right(right){}
+		Type *left, *right;
+};
 
 
 
