@@ -40,6 +40,7 @@ Type* Eval::eval(Type* type, Env* env)
 	case BASE_PROCEDURE_GE:
 	case BASE_PROCEDURE_LE:
 	case BASE_PROCEDURE_CONS:
+	case BASE_PROCEDURE_LIST:
 	case BASE_PROCEDURE_BEGIN:
 	case BASE_PROCEDURE_CAR:
 	case BASE_PROCEDURE_CDR:
@@ -82,6 +83,7 @@ Type* Eval::eval_apply(Type* type, Env* env)
 	case BASE_PROCEDURE_GE:
 	case BASE_PROCEDURE_LE:
 	case BASE_PROCEDURE_CONS:
+	case BASE_PROCEDURE_LIST:
 	case BASE_PROCEDURE_BEGIN:
 	case BASE_PROCEDURE_CAR:
 	case BASE_PROCEDURE_CDR:
@@ -145,6 +147,9 @@ Type* Eval::eval_base_procedure(Type* type, Env* env)
 		break;
 	case BASE_PROCEDURE_CDR:
 		return eval_base_procedure_cdr(base_procedure, env);
+		break;
+	case BASE_PROCEDURE_LIST:
+		return eval_base_procedure_list(base_procedure, env);
 		break;
 	}
 }
@@ -345,10 +350,27 @@ Type* Eval::eval_base_procedure_cons(Type_BaseProcedureApply* base_procedure, En
 	return new Type_Cons(base_procedure->parms[0], base_procedure->parms[1]);
 }
 
+Type* list2cons(parms_value_list& parms, size_t index)
+{
+	if (index == parms.size())
+		return nullptr;
+	else
+	{
+		return new Type_Cons(parms[index], list2cons(parms, index + 1));
+	}
+}
+
+
+Type* Eval::eval_base_procedure_list(Type_BaseProcedureApply* base_procedure, Env* env)
+{
+	return list2cons(base_procedure->parms,0);
+}
+
 Type* Eval::eval_base_procedure_begin(Type_BaseProcedureApply* base_procedure, Env* env)
 {
-	return nullptr;
-
+	for (auto iter = base_procedure->parms.begin(); iter != base_procedure->parms.end() - 1; ++iter)
+		eval(*iter,env);
+	return eval(*(base_procedure->parms.rbegin()), env);
 }
 
 Type* Eval::eval_base_procedure_car(Type_BaseProcedureApply* base_procedure, Env* env)
@@ -391,6 +413,7 @@ void Eval::create_base_env()
 	base_env->env[">="] = new Type_BaseProcedureApply(BASE_PROCEDURE_GE);
 	base_env->env["<="] = new Type_BaseProcedureApply(BASE_PROCEDURE_LE);
 	base_env->env["cons"] = new Type_BaseProcedureApply(BASE_PROCEDURE_CONS);
+	base_env->env["list"] = new Type_BaseProcedureApply(BASE_PROCEDURE_LIST);
 	base_env->env["begin"] = new Type_BaseProcedureApply(BASE_PROCEDURE_BEGIN);
 	base_env->env["car"] = new Type_BaseProcedureApply(BASE_PROCEDURE_CAR);
 	base_env->env["cdr"] = new Type_BaseProcedureApply(BASE_PROCEDURE_CDR);

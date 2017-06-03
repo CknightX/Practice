@@ -31,9 +31,9 @@ double string2double(std::string num)
 Type* Parser::deal_expression()
 {
 	Type* result = nullptr;
+	std::string str = lexer.get_next_token();
 	if (lexer.is_end)
 		return result;
-	std::string str = lexer.get_next_token();
 	if (str[0] == '(')
 	{
 		str = lexer.get_next_token();
