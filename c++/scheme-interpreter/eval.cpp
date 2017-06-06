@@ -1,6 +1,7 @@
 #include "eval.h"
 #include "type.h"
 #include<iostream>
+#include<sstream>
 Type* Eval::eval(Type* type, Env* env)
 {
 	Type* result = nullptr;
@@ -44,6 +45,7 @@ Type* Eval::eval(Type* type, Env* env)
 	case BASE_PROCEDURE_BEGIN:
 	case BASE_PROCEDURE_CAR:
 	case BASE_PROCEDURE_CDR:
+	case BASE_PROCEDURE_ISNULL:
 		result = eval_base_procedure(type, env);
 		break;
 	}
@@ -87,6 +89,7 @@ Type* Eval::eval_apply(Type* type, Env* env)
 	case BASE_PROCEDURE_BEGIN:
 	case BASE_PROCEDURE_CAR:
 	case BASE_PROCEDURE_CDR:
+	case BASE_PROCEDURE_ISNULL:
 		Type* _procedure = procedure;
 		auto base_apply = static_cast<Type_BaseProcedureApply*>(_procedure);
 		base_apply->parms = value_parms;
@@ -150,6 +153,9 @@ Type* Eval::eval_base_procedure(Type* type, Env* env)
 		break;
 	case BASE_PROCEDURE_LIST:
 		return eval_base_procedure_list(base_procedure, env);
+		break;
+	case BASE_PROCEDURE_ISNULL:
+		return eval_base_procedure_is_null(base_procedure, env);
 		break;
 	}
 }
@@ -387,16 +393,97 @@ Type* Eval::eval_base_procedure_cdr(Type_BaseProcedureApply* base_procedure, Env
 	auto cons_type = static_cast<Type_Cons*>(base_procedure->parms[0]);
 	return eval(cons_type->right);
 }
-void Eval::convert_scheme2str(Type* type)
+Type* Eval::eval_base_procedure_is_null(Type_BaseProcedureApply* base_procedure, Env* env)
 {
-	if (!type)
-		return;
+	if (base_procedure->parms.size() != 1)
+		throw "null? need 1 parms!";
+	auto cons_type = static_cast<Type_Cons*>(base_procedure->parms[0]);
+	if (cons_type == nullptr)
+		return new Type_True;
+	else
+		return new Type_False;
+}
+
+/*输出基本类型*/
+std::string Eval::convert_cons(Type* _type) //原始cons结构输出
+{
+	if (_type == nullptr)
+		return "";
+	else if (_type->type_info != BASE_TYPE_CONS)
+		return convert_scheme2str(_type);
+	else
+	{
+		auto cons_type = static_cast<Type_Cons*>(_type);
+		std::string tmp = "(" + convert_cons(cons_type->left) + " " + convert_cons(cons_type->right)+")";
+		return tmp;
+	}
+
+	return "";
+}
+std::string Eval::convert_cons_left(Type* _type)
+{
+	if (_type == nullptr)
+		return "";
+	else if (_type->type_info != BASE_TYPE_CONS)
+		return convert_scheme2str(_type);
+	else
+	{
+		auto cons_type = static_cast<Type_Cons*>(_type);
+		return "(" + convert_cons_left(cons_type->left) + " " + convert_cons_right(cons_type->right) + ")";
+	}
+
+}
+std::string Eval::convert_cons_right(Type* _type)
+{
+	if (_type == nullptr)
+		return "";
+	else if (_type->type_info != BASE_TYPE_CONS)
+		return ". " + convert_scheme2str(_type);
+	else
+	{
+		auto cons_type = static_cast<Type_Cons*>(_type);
+		return  convert_cons_left(cons_type->left) + " " + convert_cons_right(cons_type->right);
+	}
+}
+std::string Eval::convert_cons_scheme(Type* _type) //scheme格式的cons输出
+{
+	if (_type == nullptr || _type->type_info != BASE_TYPE_CONS)
+		return "";
+	auto cons_type = static_cast<Type_Cons*>(_type);
+	return "(" + convert_cons_left(cons_type->left) + " " + convert_cons_right(cons_type->right) + ")";
+}
+
+std::string Eval::convert_base_type(Type* _type)
+{
+	auto type = static_cast<Type_BaseType*>(_type);
+	std::stringstream ss;
 	switch (type->type_info)
 	{
 	case BASE_TYPE_DOUBLE:
-		std::cout << static_cast<Type_BaseType*>(type)->u.value_double << std::endl;
+		std::string tmp;
+		ss << type->u.value_double;
+		ss >> tmp;
+		return tmp;
 		break;
+	}
+}
+
+
+std::string Eval::convert_scheme2str(Type* type)
+{
+	if (!type)
+		return "";
+	switch (type->type_info)
+	{
+	case BASE_TYPE_DOUBLE:
+		return convert_base_type(type);
+		break;
+	case BASE_TYPE_CONS:
+		return convert_cons_scheme(type);
+		break;
+
 	default:
+		return "";
 		break;
 	}
 }
@@ -417,4 +504,5 @@ void Eval::create_base_env()
 	base_env->env["begin"] = new Type_BaseProcedureApply(BASE_PROCEDURE_BEGIN);
 	base_env->env["car"] = new Type_BaseProcedureApply(BASE_PROCEDURE_CAR);
 	base_env->env["cdr"] = new Type_BaseProcedureApply(BASE_PROCEDURE_CDR);
+	base_env->env["null?"] = new Type_BaseProcedureApply(BASE_PROCEDURE_ISNULL);
 }
