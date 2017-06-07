@@ -429,7 +429,11 @@ std::string Eval::convert_cons_left(Type* _type)
 	else
 	{
 		auto cons_type = static_cast<Type_Cons*>(_type);
-		return "(" + convert_cons_left(cons_type->left) + " " + convert_cons_right(cons_type->right) + ")";
+		std::string tmp = convert_cons_right(cons_type->right);
+		if (tmp == "")
+			return "(" + convert_cons_left(cons_type->left)  + ")";
+		else
+			return "(" + convert_cons_left(cons_type->left) + " " + tmp + ")";
 	}
 
 }
@@ -442,7 +446,11 @@ std::string Eval::convert_cons_right(Type* _type)
 	else
 	{
 		auto cons_type = static_cast<Type_Cons*>(_type);
-		return  convert_cons_left(cons_type->left) + " " + convert_cons_right(cons_type->right);
+		std::string tmp = convert_cons_right(cons_type->right);
+		if (tmp == "")
+			return  convert_cons_left(cons_type->left);
+		else
+			return  convert_cons_left(cons_type->left) + " " + tmp;
 	}
 }
 std::string Eval::convert_cons_scheme(Type* _type) //scheme格式的cons输出
@@ -450,20 +458,30 @@ std::string Eval::convert_cons_scheme(Type* _type) //scheme格式的cons输出
 	if (_type == nullptr || _type->type_info != BASE_TYPE_CONS)
 		return "";
 	auto cons_type = static_cast<Type_Cons*>(_type);
-	return "(" + convert_cons_left(cons_type->left) + " " + convert_cons_right(cons_type->right) + ")";
+	std::string tmp = convert_cons_right(cons_type->right);
+	if (tmp == "")
+		return "(" + convert_cons_left(cons_type->left) + ")";
+	else
+		return "(" + convert_cons_left(cons_type->left) + " " + tmp + ")";
 }
 
 std::string Eval::convert_base_type(Type* _type)
 {
 	auto type = static_cast<Type_BaseType*>(_type);
 	std::stringstream ss;
+	std::string tmp;
 	switch (type->type_info)
 	{
 	case BASE_TYPE_DOUBLE:
-		std::string tmp;
 		ss << type->u.value_double;
 		ss >> tmp;
 		return tmp;
+		break;
+	case BASE_TYPE_TRUE:
+		return "#t";
+		break;
+	case BASE_TYPE_FALSE:
+		return "#f";
 		break;
 	}
 }
@@ -476,6 +494,8 @@ std::string Eval::convert_scheme2str(Type* type)
 	switch (type->type_info)
 	{
 	case BASE_TYPE_DOUBLE:
+	case BASE_TYPE_TRUE:
+	case BASE_TYPE_FALSE:
 		return convert_base_type(type);
 		break;
 	case BASE_TYPE_CONS:
@@ -504,5 +524,6 @@ void Eval::create_base_env()
 	base_env->env["begin"] = new Type_BaseProcedureApply(BASE_PROCEDURE_BEGIN);
 	base_env->env["car"] = new Type_BaseProcedureApply(BASE_PROCEDURE_CAR);
 	base_env->env["cdr"] = new Type_BaseProcedureApply(BASE_PROCEDURE_CDR);
+	base_env->env["null"] = nullptr;
 	base_env->env["null?"] = new Type_BaseProcedureApply(BASE_PROCEDURE_ISNULL);
 }

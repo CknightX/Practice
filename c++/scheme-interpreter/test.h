@@ -33,4 +33,7 @@
 					(define cdr(lambda(z) (z 1)))\
 					(car(cond 1 2))\
 		   			(cdr(cond 1 2))" // 1 2																																																																																					   																								   				   ";
+
+#define CODE8 "(list (cons (list 1 2) (cons 3 4)) (list (cons 1 2) (cons 3 4)))" //list cons Êä³ö²âÊÔ
+
 #endif
