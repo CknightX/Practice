@@ -38,12 +38,16 @@ private:
 	Type* eval_base_procedure_equal(Type_BaseProcedureApply* base_procedure, Env* env);
 	Type* eval_base_procedure_greater_equal(Type_BaseProcedureApply* base_procedure, Env* env);
 	Type* eval_base_procedure_less_equal(Type_BaseProcedureApply* base_procedure, Env* env);
+	Type* eval_base_procedure_and(Type_BaseProcedureApply* base_procedure, Env* env);
+	Type* eval_base_procedure_or(Type_BaseProcedureApply* base_procedure, Env* env);
+	Type* eval_base_procedure_not(Type_BaseProcedureApply* base_procedure, Env* env);
 	Type* eval_base_procedure_cons(Type_BaseProcedureApply* base_procedure, Env* env);
 	Type* eval_base_procedure_list(Type_BaseProcedureApply* base_procedure, Env* env);
 	Type* eval_base_procedure_begin(Type_BaseProcedureApply* base_procedure, Env* env);
 	Type* eval_base_procedure_car(Type_BaseProcedureApply* base_procedure, Env* env);
 	Type* eval_base_procedure_cdr(Type_BaseProcedureApply* base_procedure, Env* env);
 	Type* eval_base_procedure_is_null(Type_BaseProcedureApply* base_procedure, Env* env);
+	Type* eval_base_procedure_is_pair(Type_BaseProcedureApply* base_procedure, Env* env);
 
 	//Êä³öscheme¶ÔÏó
 	std::string convert_cons(Type* _type);
