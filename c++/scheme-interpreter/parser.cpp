@@ -49,6 +49,10 @@ Type* Parser::deal_expression()
 		{
 			result = deal_if();
 		}
+		else if (str == "cond")
+		{
+			result = deal_cond();
+		}
 		else //apply
 		{
 			/*
@@ -158,6 +162,12 @@ Type* Parser::deal_lambda()
 Type* Parser::deal_define()
 {
 	std::string name = lexer.get_next_token();
+	if (name == "(")
+	{
+		name = lexer.get_next_token();
+		lexer.put_formal_token();
+		return new Type_Define(name, deal_lambda());
+	}
 	return new Type_Define(name, deal_expression());
 }
 Type* Parser::deal_if()
@@ -167,11 +177,38 @@ Type* Parser::deal_if()
 	auto alter = deal_expression();
 	return new Type_If(condition,conseq,alter);
 }
+std::pair<Type*, Type*> Parser::deal_cond_part()
+{
+	lexer.get_next_token(); // (
+	auto condition = deal_expression(); 
+	auto conseq = deal_expression();
+	lexer.get_next_token(); // )
+	return std::make_pair(condition, conseq);
+}
 
+Type* Parser::deal_cond()
+{
+	if (lexer.get_next_token() != "(")
+	{
+		lexer.put_formal_token();
+		return nullptr;
+	}
+
+	lexer.put_formal_token();
+
+	auto part = deal_cond_part();
+	if (part.first->type_info == VARIABLE) // else
+	{
+		auto var = static_cast<Type_Variable*>(part.first);
+		if (var->name == "else")
+			return part.second;
+	}
+	return new Type_If(part.first, part.second, deal_cond());
+}
 std::vector<std::string> Parser::deal_parms_name()
 {
 	std::vector<std::string> result;
-	lexer.get_next_token( ); //(
+	lexer.get_next_token(); //(
 	std::string str;
 	while ((str = lexer.get_next_token()) != ")")
 		result.push_back(str);

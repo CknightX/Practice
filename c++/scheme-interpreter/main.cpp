@@ -6,7 +6,7 @@
 #include "test.h"
 int main()
 {
-	std::string code = "(cdr (list (cons (list 1 2) (cons 3 4)) (list (cons 1 (cons 1 (list 1 2 3))) (cons 3 4))))";
+	std::string code = "(cond ((= 1 2) 1) ((= 2 2) 2) (else 3))";
 	Parser a(code);
 	Env* env = new Env;
 	Eval b(env);

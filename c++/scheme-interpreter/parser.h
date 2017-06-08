@@ -18,6 +18,8 @@ private:
 	Type* deal_expression();
 	Type* deal_define();
 	Type* deal_if();
+	Type* deal_cond();
+	std::pair<Type*,Type*> deal_cond_part();
 	Type* deal_base_procedure();
 	Type* deal_procedure();
 	Type* deal_apply();

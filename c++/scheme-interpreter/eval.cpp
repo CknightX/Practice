@@ -525,5 +525,10 @@ void Eval::create_base_env()
 	base_env->env["car"] = new Type_BaseProcedureApply(BASE_PROCEDURE_CAR);
 	base_env->env["cdr"] = new Type_BaseProcedureApply(BASE_PROCEDURE_CDR);
 	base_env->env["null"] = nullptr;
+	base_env->env["print"] = new Type_BaseProcedureApply(BASE_PROCEDURE_ISNULL);
+
 	base_env->env["null?"] = new Type_BaseProcedureApply(BASE_PROCEDURE_ISNULL);
+	base_env->env["pair?"] = new Type_BaseProcedureApply(BASE_PROCEDURE_ISNULL);
+	base_env->env["eq?"] = new Type_BaseProcedureApply(BASE_PROCEDURE_ISNULL);
+	base_env->env["symbol?"] = new Type_BaseProcedureApply(BASE_PROCEDURE_ISNULL);
 }

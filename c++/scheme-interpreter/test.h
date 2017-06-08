@@ -7,8 +7,7 @@
 // 基本类型 double
 #define CODE1 "(define x 2.33) x"
 
-//基本运算
-#define CODE8 "(+ 1 2)"
+
 
 // lambda
 #define CODE2 "(define x (lambda (a b) (+ a b))) (x 1 2)"  // 3
