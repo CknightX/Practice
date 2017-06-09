@@ -35,4 +35,14 @@
 
 #define CODE8 "(list (cons (list 1 2) (cons 3 4)) (list (cons 1 2) (cons 3 4)))" //list cons Êä³ö²âÊÔ
 
+#define CODE9 "(define (append list1 list2)\
+		(if (null? list1)\
+		list2\
+		(cons(car list1) (append(cdr list1) list2))))\
+						(define (fringe items)\
+						(cond((null? items) null)\
+						((not(pair? items)) (list items))\
+						(else (append(fringe(car items)) (fringe(cdr items))))))\
+												(fringe (list (cons 1 2) (cons 3 4) (list 5 6)))"
+
 #endif

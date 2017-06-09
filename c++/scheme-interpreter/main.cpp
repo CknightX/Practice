@@ -5,7 +5,7 @@
 #include "eval.h"
 #include "test.h"
 int main()
-{
+{  
 	std::string code = "(define (append list1 list2)\
 		(if (null? list1)\
 		list2\
@@ -16,8 +16,8 @@ int main()
 						(else (append(fringe(car items)) (fringe(cdr items))))))\
 												(fringe (list (cons 1 2) (cons 3 4) (list 5 6)))\
 		";
-	std::string code2 = "(not (null? null))";
-	Parser a(code);
+	std::string code2 = "(define (x y) (lambda (a b) (+ a b y)))((x 2) 3 4)";
+	Parser a(code2);
 	Env* env = new Env;
 	Eval b(env);
 	b.create_base_env();	//创建基础环境

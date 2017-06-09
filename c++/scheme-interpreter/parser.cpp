@@ -53,6 +53,10 @@ Type* Parser::deal_expression()
 		{
 			result = deal_cond();
 		}
+		else if (str == "(")   // procedure
+		{
+			result = deal_expression();
+		}
 		else //apply
 		{
 			/*
