@@ -6,16 +6,19 @@
 #include<vector>
 
 using namespace std;
+
+
+typedef vector<int> page_list;
 class Base
 {
 public:
-	Base(int n) :suspend_counter(0), block(new int[n]), block_size(n){ fill_n(block, block_size, 0); }
-	virtual void get(int* _page,size_t n) = 0;
-	int get_suspend(){ return suspend_counter; } //获取中断次数
-	int* is_in_block(int page){ auto result = find(block, block + block_size, page); return (result == block + block_size ? nullptr : result); } //是否位于页表
-	void move_page(int* page){ copy(page + 1, block + block_size, page); }  //移走某个页
-	void add_page(int page){ block[block_size - 1] = page; } //向页表末尾添加
-	void print_block(){ for_each(block, block + block_size, [](const int& i){if (i)cout << i << ' '; }); cout << endl; } //输出当前页表
+	Base(int n) :suspend_counter(0), block(new int[n]), block_size(n){ fill_n(block, block_size, -1); }
+	virtual void get(page_list& _page) = 0;
+	int get_suspend(){ return suspend_counter; }
+	int* is_in_block(int page){ auto result = find(block, block + block_size, page); return (result == block + block_size ? nullptr : result); }
+	void move_page(int* page){ copy(page + 1, block + block_size, page); }
+	void add_page(int page){ block[block_size - 1] = page; }
+	void print_block(){ for_each(block, block + block_size, [](const int& i){if (i >= 0)cout << i << ' '; }); }
 	~Base(){ delete[]block; }
 protected:
 	int suspend_counter;
@@ -27,23 +30,26 @@ class FIFO :public Base
 {
 public:
 	FIFO(int n) :Base(n){}
-	void get(int* _page,size_t n)
+	void get(page_list& _page)
 	{
-		for (size_t i = 0; i < n; ++i)
+		cout << "FIFO:" << endl;
+		for (auto page : _page)
 		{
-			auto page = _page[i];
 			auto _end = block + block_size;
 			auto result = find(block, _end, page);
-			if (result != _end)
-				continue;
-			else
+			bool flag = false;
+			if (result == _end)
 			{
 				++suspend_counter;
 				move_page(block);
 				add_page(page);
+				flag = true;
 			}
-		print_block();
+			print_block();
+			if (flag)cout << "*";
+			cout << endl;
 		}
+		cout << "lose page:" << get_suspend() << endl;
 	}
 };
 
@@ -51,13 +57,14 @@ class LRU :public Base
 {
 public:
 	LRU(int n) :Base(n){}
-	void get(int* _page, size_t n)
+	void get(page_list& _page)
 	{
-		for (size_t i = 0; i < n; ++i)
+		cout << "LRU:" << endl;
+		for (auto page : _page)
 		{
-			auto page = _page[i];
 			auto _end = block + block_size;
 			auto result = find(block, _end, page);
+			bool flag = false;
 			if (result != _end)
 			{
 				move_page(result);
@@ -66,10 +73,14 @@ public:
 			{
 				++suspend_counter;
 				move_page(block);
+				flag = true;
 			}
 			add_page(page);
-		print_block();
+			print_block();
+			if (flag)cout << "*";
+			cout << endl;
 		}
+		cout << "lose page:" << get_suspend() << endl;
 	}
 };
 
@@ -77,47 +88,49 @@ class OPT :public Base
 {
 public:
 	OPT(int n) :Base(n){}
-	void get(int* _page,size_t n)
+	void get(page_list& _page)
 	{
-		map<int, int> page_num;
-		for (size_t i = 0; i < n; ++i)
+		cout << "OPT:" << endl;
+		for (auto page_iter = _page.begin(); page_iter != _page.end(); ++page_iter)
 		{
-			if (is_in_block(_page[i]))
-				continue;
-			else
+			bool flag = true;
+			if (!is_in_block(*page_iter))
 			{
 				++suspend_counter;
-				vector<int> result;
-				//  最久未使用
-				for (size_t j = 0; j < block_size; ++j) 
-				{
-					int len = 0;
-					for (size_t k = i + 1; k < n; ++k)
-					{
-						if (block[j] == _page[k])
-							break;
-						++len;
-					}
+				vector<size_t> result;
+
+				//寻找最久未使用
+				for_each(block, block + block_size, [&](const int& page_no){
+					size_t len = find(page_iter + 1, _page.end(), page_no) - _page.begin();
 					result.emplace_back(len);
-				}
-				size_t index = max_element(result.begin(), result.end()) - result.begin();
+				});
+
+
+				size_t index = max_element(result.begin(), result.end()) - result.begin(); //得到最久未使用的页序号
+				//移除
 				move_page(block + index);
-				add_page(_page[i]);
+
+				add_page(*page_iter);
 			}
-		print_block();
+			print_block();
+			if (flag)cout << "*";
+			cout << endl;
 		}
+		cout << "lose page:" << get_suspend() << endl;
 	}
 };
 int main()
 {
-	FIFO fifo(3);
-	LRU lru(3);
-	OPT opt(3);
-	int a[12] = { 2, 3, 2, 1, 5, 2, 4, 5, 3, 2, 5, 2 };
-	fifo.get(a, 12);
-	lru.get(a, 12);
-	opt.get(a, 12);
-	cout << fifo.get_suspend()<<endl<<lru.get_suspend()<<endl<<opt.get_suspend();
+	FIFO fifo(4);
+	LRU lru(4);
+	OPT opt(4);
+
+	vector<int> page = { 4, 3, 2, 1, 4, 3, 5, 4, 3, 2, 1, 5 };
+
+	fifo.get(page);
+	lru.get(page);
+	opt.get(page);
+	cout << endl;
 	cin.get();
 	return 0;
 }
